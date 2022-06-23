@@ -2,34 +2,72 @@ package lib
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"math"
 	"strings"
+	"sync"
 )
+
+func processRow(wg *sync.WaitGroup, column int, img *image.NRGBA, maxRow int) (string, bool) {
+	defer wg.Done()
+
+	var message string
+
+	for y := 0; y < maxRow; y++ {
+		nrgba := img.NRGBAAt(column, y)
+		r, g, b, a := nrgba.R, nrgba.G, nrgba.B, nrgba.A
+
+		var val uint8
+		// Reconstruct the byte using the
+		// first two bits of each color value.
+		// Shift bits to the left such that
+		// the values parsed from r become the
+		// the most significant bits of the byte
+		// and the values parsed from a become the least.
+		val += (r & 3) << 6
+		val += (g & 3) << 4
+		val += (b & 3) << 2
+		val += (a & 3)
+
+		if string(val) == "\000" {
+			message += string(val)
+			// Return true to indicate that this substring is the final one in the encoded message.
+			return message, true
+		} else {
+			message += string(val)
+		}
+
+	}
+	return message, false
+}
 
 func DecodePixelsToBytes(filename string) {
 	newImage, dimensions := drawCopy(filename)
-	var message string
+
+	var wg sync.WaitGroup
+
+	columns := make([]string, dimensions.X)
+
+	var lastMessageRow int
 
 	for x := 0; x < dimensions.X; x++ {
-		for y := 0; y < dimensions.Y; y++ {
-			nrgba := newImage.NRGBAAt(x, y)
-			r, g, b, a := nrgba.R, nrgba.G, nrgba.B, nrgba.A
-			var val uint8
-			val += (r & 3) << 6
-			val += (g & 3) << 4
-			val += (b & 3) << 2
-			val += (a & 3)
+		wg.Add(1)
 
-			if string(val) == "\000" {
-				fmt.Println(message)
-				return
-			} else {
-				message += string(val)
+		go func(column int) {
+			message, terminalColumn := processRow(&wg, column, newImage, dimensions.Y)
+			columns[column] = message
+
+			if terminalColumn {
+				lastMessageRow = column
 			}
-
-		}
+		}(x)
 	}
+
+	wg.Wait()
+
+	message := strings.Join(columns[:lastMessageRow], "")
+	fmt.Printf("%s", message)
 }
 
 func DecodePixelsToNibbles(filename string) {
