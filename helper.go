@@ -1,10 +1,9 @@
-package lib
+package main
 
 import (
 	"image"
 	"image/draw"
 	_ "image/jpeg"
-	"image/png"
 	_ "image/png"
 	"os"
 )
@@ -45,11 +44,4 @@ func drawCopy(filename string) (*image.NRGBA, image.Point) {
 	return newImage, originalBounds.Size()
 }
 
-func saveImage(img *image.NRGBA, filename string) {
-	outFile, err := os.Create(filename)
-	if err != nil {
-		panic(err.Error())
-	}
-	defer outFile.Close()
-	png.Encode(outFile, img)
-}
+

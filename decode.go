@@ -1,4 +1,4 @@
-package lib
+package main
 
 import (
 	"fmt"
@@ -66,7 +66,7 @@ func DecodePixelsToBytes(filename string) {
 
 	wg.Wait()
 
-	message := strings.Join(columns[:lastMessageRow], "")
+	message := strings.Join(columns[:lastMessageRow+1], "")
 	fmt.Printf("%s", message)
 }
 
