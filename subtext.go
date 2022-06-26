@@ -36,13 +36,17 @@ func (s *SubtextImage) EncodeMessage(message []byte) {
 		x := i / s.dimensions.Y
 		y := i % s.dimensions.Y
 
+		if x > s.dimensions.X || y > s.dimensions.Y {
+			return
+		}
+
 		nrgba := s.image.NRGBAAt(x, y)
 
 		byt := message[i]
-		// Interpret r,g,b,a values of pixel as
+		// Interpret r,g,b,a values of a pixel as
 		// corresponding to bits in a byte, where
-		// r represents the most significant bits
-		// and a represents the least.
+		// 'r' represents the most significant bits
+		// and 'a' represents the least.
 		//
 		// For each color value, the ones place value
 		// is used to determine the value of the bits
@@ -50,6 +54,22 @@ func (s *SubtextImage) EncodeMessage(message []byte) {
 		// between 0 and 3, which corresponds to the following
 		// binary representations:
 		// 11, 10, 01, 00
+		//
+		// For example, given RGBA values of {121, 255, 28, 4}
+		// and the character 'l', which has an ASCII code of 108,
+		// and 8 bit binary representation of 01101100, we modify
+		// the RGBA values to be 121, 254, 31, 4, which have the following
+		// 8 bit representations:
+		// 	121 - 011110<01>
+		//	254 - 111111<10>
+		//       31 - 001111<11>
+		//        4 - 000001<00>
+		// Extracting the least significant bits from each number and shifting
+		// according to the color's designated position in our scheme, we get
+		// 	01101100
+		// which is 108, ASCII character 'l'.
+
+		// Use bitwise AND to determine value of the two least significant bits
 		rFlip := (byt >> 6) & 3
 		gFlip := (byt >> 4) & 3
 		bFlip := (byt >> 2) & 3
