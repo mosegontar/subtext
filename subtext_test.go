@@ -87,7 +87,7 @@ func TestEncodeMessage(t *testing.T) {
 		checkColors([4]int{121, 254, 31, 4}, 2, 0)
 	})
 
-	t.Run("fails to modify pixels that are outside the image dimensions", func(t *testing.T) {
+	t.Run("does not modify pixels that are outside the image dimensions", func(t *testing.T) {
 		message := []byte("hello")
 
 		rectangle := image.Rect(0, 0, 1, 1)
