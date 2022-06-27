@@ -103,12 +103,15 @@ func (img *UnderbyteImage) DecodeMessage(w io.Writer) {
 		wg.Add(1)
 
 		go func(column int) {
-			message, terminalColumn := processRow(&wg, column, img.image, img.dimensions.Y)
-			columns[column] = message
+			message, terminalY := processRow(column, img.image, img.dimensions.Y)
 
-			if terminalColumn {
+			if terminalY >= 0 {
+				columns[column] = message[:terminalY]
 				lastMessageRow = column
+			} else {
+				columns[column] = message
 			}
+			wg.Done()
 		}(x)
 	}
 
@@ -118,9 +121,7 @@ func (img *UnderbyteImage) DecodeMessage(w io.Writer) {
 	fmt.Fprintf(w, "%s", message)
 }
 
-func processRow(wg *sync.WaitGroup, column int, img *image.NRGBA, maxRow int) (string, bool) {
-	defer wg.Done()
-
+func processRow(column int, img *image.NRGBA, maxRow int) (string, int) {
 	var message string
 
 	for y := 0; y < maxRow; y++ {
@@ -142,13 +143,13 @@ func processRow(wg *sync.WaitGroup, column int, img *image.NRGBA, maxRow int) (s
 		if string(val) == "\000" {
 			message += string(val)
 			// Return true to indicate that this substring is the final one in the encoded message.
-			return message, true
+			return message, y
 		} else {
 			message += string(val)
 		}
 
 	}
-	return message, false
+	return message, -1
 }
 
 func openImage(filepath string) *os.File {

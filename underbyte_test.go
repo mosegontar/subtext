@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	"image/draw"
@@ -102,4 +103,27 @@ func TestEncodeMessage(t *testing.T) {
 		checkColors([4]int{0, 0, 0, 0}, 2, 0)
 	})
 
+}
+
+func TestDecodeMessage(t *testing.T) {
+	t.Run("correctly decodes an embedded message", func(t *testing.T) {
+		message := []byte("hi how are you")
+
+		rectangle := image.Rect(0, 0, 300, 300)
+		newImage := image.NewNRGBA(rectangle)
+		drawImage(newImage)
+
+		underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
+		underbyteImage.EncodeMessage(message)
+
+		buff := new(bytes.Buffer)
+		underbyteImage.DecodeMessage(buff)
+
+		expected := "hi how are you"
+		actual := string(buff.Bytes())
+
+		if expected != actual {
+			t.Errorf("expected '%v', actual '%v'", []byte(expected), []byte(actual))
+		}
+	})
 }
