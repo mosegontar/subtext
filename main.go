@@ -49,10 +49,10 @@ func outputFile(outputPath string) (*os.File, error) {
 }
 
 func main() {
-	filepath := flag.String("f", "", "input image filepath")
-	outpath := flag.String("o", "", "output filepath for encoded image")
-	decode := flag.Bool("d", false, "decode message from image")
-	message := flag.String("m", "", "message to encode")
+	filepath := flag.String("file", "", "Input image filepath")
+	outpath := flag.String("out", "", "Output filepath for encoded image (STDOUT used if not specified)")
+	decode := flag.Bool("decode", false, "Decode message from image instead of encoding (default false)")
+	message := flag.String("mmessage", "", "message to encode (STDIN used if not specified)")
 
 	flag.Parse()
 
