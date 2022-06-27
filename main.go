@@ -20,17 +20,17 @@ func parseMessage(message string) []byte {
 }
 
 func decodeMessage(filepath string, outFile *os.File) {
-	sourceImage := NewSubtextImage(filepath)
+	sourceImage := NewUnderbyteImage(filepath)
 	sourceImage.DecodeMessage(outFile)
 }
 
 func encodeMessage(message string, inputPath string, outFile *os.File) {
 	messageBytes := parseMessage(message)
-	subtextImage := NewSubtextImage(inputPath)
+	underbyteImage := NewUnderbyteImage(inputPath)
 
-	subtextImage.EncodeMessage(messageBytes)
+	underbyteImage.EncodeMessage(messageBytes)
 
-	subtextImage.WriteImage(outFile)
+	underbyteImage.WriteImage(outFile)
 }
 
 func outputFile(outputPath string) (*os.File, error) {
@@ -52,7 +52,7 @@ func main() {
 	filepath := flag.String("file", "", "Input image filepath")
 	outpath := flag.String("out", "", "Output filepath for encoded image (STDOUT used if not specified)")
 	decode := flag.Bool("decode", false, "Decode message from image instead of encoding (default false)")
-	message := flag.String("mmessage", "", "message to encode (STDIN used if not specified)")
+	message := flag.String("message", "", "message to encode (STDIN used if not specified)")
 
 	flag.Parse()
 

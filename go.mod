@@ -1,3 +1,3 @@
-module github.com/mosegontar/subtext
+module github.com/mosegontar/underbyte
 
 go 1.18

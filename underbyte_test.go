@@ -39,16 +39,16 @@ func TestEncodeMessage(t *testing.T) {
 		newImage := image.NewNRGBA(rectangle)
 		drawImage(newImage)
 
-		subtextImage := SubtextImage{image: newImage, dimensions: newImage.Bounds().Size()}
+		underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
 
-		checkColors := pixelColorChecker(subtextImage.image, t)
+		checkColors := pixelColorChecker(underbyteImage.image, t)
 
 		// Confirm all pixel RGBA values are set to 0 before encoding
 		for i := 0; i < 10; i++ {
 			checkColors([4]int{0, 0, 0, 0}, i, 0)
 		}
 
-		subtextImage.EncodeMessage(message)
+		underbyteImage.EncodeMessage(message)
 
 		// h
 		checkColors([4]int{1, 2, 2, 0}, 0, 0)
@@ -78,12 +78,12 @@ func TestEncodeMessage(t *testing.T) {
 		newImage := image.NewNRGBA(rectangle)
 		drawImage(newImage)
 
-		subtextImage := SubtextImage{image: newImage, dimensions: newImage.Bounds().Size()}
-		subtextImage.image.SetNRGBA(2, 0, color.NRGBA{121, 255, 28, 4})
+		underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
+		underbyteImage.image.SetNRGBA(2, 0, color.NRGBA{121, 255, 28, 4})
 
-		subtextImage.EncodeMessage(message)
+		underbyteImage.EncodeMessage(message)
 
-		checkColors := pixelColorChecker(subtextImage.image, t)
+		checkColors := pixelColorChecker(underbyteImage.image, t)
 		checkColors([4]int{121, 254, 31, 4}, 2, 0)
 	})
 
@@ -94,11 +94,11 @@ func TestEncodeMessage(t *testing.T) {
 		newImage := image.NewNRGBA(rectangle)
 		drawImage(newImage)
 
-		subtextImage := SubtextImage{image: newImage, dimensions: newImage.Bounds().Size()}
+		underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
 
-		subtextImage.EncodeMessage(message)
+		underbyteImage.EncodeMessage(message)
 
-		checkColors := pixelColorChecker(subtextImage.image, t)
+		checkColors := pixelColorChecker(underbyteImage.image, t)
 		checkColors([4]int{0, 0, 0, 0}, 2, 0)
 	})
 

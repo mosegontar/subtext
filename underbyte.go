@@ -14,12 +14,12 @@ import (
 	"sync"
 )
 
-type SubtextImage struct {
+type UnderbyteImage struct {
 	image      *image.NRGBA
 	dimensions image.Point
 }
 
-func NewSubtextImage(sourceFilename string) *SubtextImage {
+func NewUnderbyteImage(sourceFilename string) *UnderbyteImage {
 	original := imageData(sourceFilename)
 	originalBounds := original.Bounds()
 
@@ -28,10 +28,10 @@ func NewSubtextImage(sourceFilename string) *SubtextImage {
 
 	draw.Draw(newImage, newImage.Bounds(), original, originalBounds.Min, draw.Src)
 
-	return &SubtextImage{image: newImage, dimensions: originalBounds.Size()}
+	return &UnderbyteImage{image: newImage, dimensions: originalBounds.Size()}
 }
 
-func (s *SubtextImage) EncodeMessage(message []byte) {
+func (s *UnderbyteImage) EncodeMessage(message []byte) {
 	for i := 0; i < len(message); i++ {
 		x := i / s.dimensions.Y
 		y := i % s.dimensions.Y
@@ -88,11 +88,11 @@ func (s *SubtextImage) EncodeMessage(message []byte) {
 	}
 }
 
-func (s *SubtextImage) WriteImage(w io.Writer) {
+func (s *UnderbyteImage) WriteImage(w io.Writer) {
 	png.Encode(w, s.image)
 }
 
-func (img *SubtextImage) DecodeMessage(w io.Writer) {
+func (img *UnderbyteImage) DecodeMessage(w io.Writer) {
 	var wg sync.WaitGroup
 
 	columns := make([]string, img.dimensions.X)
