@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 )
@@ -53,6 +54,23 @@ func main() {
 	outpath := flag.String("out", "", "Output filepath for encoded image (STDOUT used if not specified)")
 	decode := flag.Bool("decode", false, "Decode message from image instead of encoding (default false)")
 	message := flag.String("message", "", "message to encode (STDIN used if not specified)")
+
+	var defaultUsage func()
+	defaultUsage = flag.Usage
+	flag.Usage = func() {
+		defaultUsage()
+		exampleBlock := `
+Examples:
+  Encoding:
+	underbyte -file image.jpg -message "hello there" -out encoded_image.jpg
+	underbyte -file image.jpg -message "hello there" > encoded_image.jpg
+	cat somefile.txt | underbyte -file image.jpg > encoded_image.jpg
+  Decoding:
+  	underbyte -decode -file encoded_image.jpg
+	underbyte -decode -file encoded_image.jpg -out decoded_image.jpg
+`
+		fmt.Fprintln(flag.CommandLine.Output(), exampleBlock)
+	}
 
 	flag.Parse()
 
