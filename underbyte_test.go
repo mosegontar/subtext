@@ -6,11 +6,23 @@ import (
 	"image/color"
 	"image/draw"
 	"reflect"
+	"strings"
 	"testing"
 )
 
-func drawImage(img *image.NRGBA) {
+func blankImage(x, y int) *image.NRGBA {
+	rectangle := image.Rect(0, 0, x, y)
+	img := image.NewNRGBA(rectangle)
 	draw.Draw(img, img.Bounds(), img, img.Bounds().Min, draw.Src)
+	return img
+}
+
+func fillPixels(img *UnderbyteImage) {
+	for x := 0; x < img.dimensions.X; x++ {
+		for y := 0; y < img.dimensions.Y; y++ {
+			img.image.SetNRGBA(x, y, color.NRGBA{1, 2, 3, 4})
+		}
+	}
 }
 
 func pixelColorChecker(img *image.NRGBA, t *testing.T) func([4]int, int, int) {
@@ -36,9 +48,7 @@ func TestEncodeMessage(t *testing.T) {
 	t.Run("sets the image pixels correctly", func(t *testing.T) {
 		message := []byte("hello")
 
-		rectangle := image.Rect(0, 0, 10, 1)
-		newImage := image.NewNRGBA(rectangle)
-		drawImage(newImage)
+		newImage := blankImage(10, 1)
 
 		underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
 
@@ -75,9 +85,7 @@ func TestEncodeMessage(t *testing.T) {
 	t.Run("sets the image pixels correctly when there are RGBA values greater than 0", func(t *testing.T) {
 		message := []byte("hello")
 
-		rectangle := image.Rect(0, 0, 10, 1)
-		newImage := image.NewNRGBA(rectangle)
-		drawImage(newImage)
+		newImage := blankImage(10, 1)
 
 		underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
 		underbyteImage.image.SetNRGBA(2, 0, color.NRGBA{121, 255, 28, 4})
@@ -91,9 +99,7 @@ func TestEncodeMessage(t *testing.T) {
 	t.Run("does not modify pixels that are outside the image dimensions", func(t *testing.T) {
 		message := []byte("hello")
 
-		rectangle := image.Rect(0, 0, 1, 1)
-		newImage := image.NewNRGBA(rectangle)
-		drawImage(newImage)
+		newImage := blankImage(1, 1)
 
 		underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
 
@@ -102,28 +108,45 @@ func TestEncodeMessage(t *testing.T) {
 		checkColors := pixelColorChecker(underbyteImage.image, t)
 		checkColors([4]int{0, 0, 0, 0}, 2, 0)
 	})
-
 }
 
 func TestDecodeMessage(t *testing.T) {
 	t.Run("correctly decodes an embedded message", func(t *testing.T) {
-		message := []byte("hi how are you")
+		message := []byte("hi how are you\000")
 
-		rectangle := image.Rect(0, 0, 300, 300)
-		newImage := image.NewNRGBA(rectangle)
-		drawImage(newImage)
+		newImage := blankImage(300, 300)
 
 		underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
+		fillPixels(&underbyteImage)
+
 		underbyteImage.EncodeMessage(message)
 
 		buff := new(bytes.Buffer)
 		underbyteImage.DecodeMessage(buff)
 
 		expected := "hi how are you"
-		actual := string(buff.Bytes())
+		actual := buff.String()
 
 		if expected != actual {
 			t.Errorf("expected '%v', actual '%v'", []byte(expected), []byte(actual))
 		}
 	})
+}
+
+func BenchmarkDecodeMessage(b *testing.B) {
+	message := []byte(strings.Repeat("Z", 1000000))
+	newImage := blankImage(1000, 1000)
+
+	underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
+	fillPixels(&underbyteImage)
+
+	underbyteImage.EncodeMessage(message)
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		buff := new(bytes.Buffer)
+		b.StartTimer()
+		underbyteImage.DecodeMessage(buff)
+
+	}
 }
