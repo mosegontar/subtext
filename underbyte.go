@@ -10,8 +10,6 @@ import (
 	_ "image/png"
 	"io"
 	"os"
-	"strings"
-	"sync"
 )
 
 type UnderbyteImage struct {
@@ -93,35 +91,21 @@ func (s *UnderbyteImage) WriteImage(w io.Writer) {
 }
 
 func (img *UnderbyteImage) DecodeMessage(w io.Writer) {
-	var wg sync.WaitGroup
-
-	columns := make([]string, img.dimensions.X)
-
-	var lastMessageRow int
+	var decoded string
 
 	for x := 0; x < img.dimensions.X; x++ {
-		wg.Add(1)
+		message, endOfMessage := processColumn(x, img.image, img.dimensions.Y)
+		decoded += message
 
-		go func(column int) {
-			message, terminalY := processRow(column, img.image, img.dimensions.Y)
-
-			if terminalY >= 0 {
-				columns[column] = message[:terminalY]
-				lastMessageRow = column
-			} else {
-				columns[column] = message
-			}
-			wg.Done()
-		}(x)
+		if endOfMessage {
+			break
+		}
 	}
 
-	wg.Wait()
-
-	message := strings.Join(columns[:lastMessageRow+1], "")
-	fmt.Fprintf(w, "%s", message)
+	fmt.Fprintf(w, "%s", decoded)
 }
 
-func processRow(column int, img *image.NRGBA, maxRow int) (string, int) {
+func processColumn(column int, img *image.NRGBA, maxRow int) (string, bool) {
 	var message string
 
 	for y := 0; y < maxRow; y++ {
@@ -141,15 +125,14 @@ func processRow(column int, img *image.NRGBA, maxRow int) (string, int) {
 		val += (a & 3)
 
 		if string(val) == "\000" {
-			message += string(val)
 			// Return true to indicate that this substring is the final one in the encoded message.
-			return message, y
+			return message, true
 		} else {
 			message += string(val)
 		}
 
 	}
-	return message, -1
+	return message, false
 }
 
 func openImage(filepath string) *os.File {

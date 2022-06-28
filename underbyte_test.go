@@ -134,8 +134,8 @@ func TestDecodeMessage(t *testing.T) {
 }
 
 func BenchmarkDecodeMessage(b *testing.B) {
-	message := []byte(strings.Repeat("Z", 1000000))
-	newImage := blankImage(1000, 1000)
+	newImage := blankImage(5000, 5000)
+	message := []byte(strings.Repeat("Z", 5000*5000))
 
 	underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
 	fillPixels(&underbyteImage)
