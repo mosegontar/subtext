@@ -9,15 +9,15 @@ import (
 
 func parseMessage(message string) []byte {
 	if message != "" {
-		return []byte(message + "\000")
+		return []byte(message)
 	}
 
 	byts, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
 		panic(err.Error())
 	}
-	byts = append(byts, byte('\000'))
-	return []byte(string(byts[:]))
+
+	return byts
 }
 
 func decodeMessage(filepath string, outFile *os.File) {

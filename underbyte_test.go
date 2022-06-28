@@ -112,7 +112,7 @@ func TestEncodeMessage(t *testing.T) {
 
 func TestDecodeMessage(t *testing.T) {
 	t.Run("correctly decodes an embedded message", func(t *testing.T) {
-		message := []byte("hi how are you\000")
+		message := []byte("hi how are you")
 
 		newImage := blankImage(300, 300)
 
@@ -124,11 +124,11 @@ func TestDecodeMessage(t *testing.T) {
 		buff := new(bytes.Buffer)
 		underbyteImage.DecodeMessage(buff)
 
-		expected := "hi how are you"
-		actual := buff.String()
+		expected := message
+		actual := buff.Bytes()
 
-		if expected != actual {
-			t.Errorf("expected '%v', actual '%v'", []byte(expected), []byte(actual))
+		if !reflect.DeepEqual(expected, actual) {
+			t.Errorf("expected '%v', actual '%v'", expected, actual)
 		}
 	})
 }

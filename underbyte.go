@@ -30,6 +30,8 @@ func NewUnderbyteImage(sourceFilename string) *UnderbyteImage {
 }
 
 func (s *UnderbyteImage) EncodeMessage(message []byte) {
+	message = append(message, '\000')
+
 	for i := 0; i < len(message); i++ {
 		x := i / s.dimensions.Y
 		y := i % s.dimensions.Y
