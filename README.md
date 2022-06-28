@@ -1,5 +1,12 @@
 # underbyte
 
+## Installation
+### Building from source
+```
+go build
+```
+
+## Usage
 ```
 Usage of ./underbyte:
   -decode
