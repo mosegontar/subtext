@@ -93,11 +93,11 @@ func (s *UnderbyteImage) WriteImage(w io.Writer) {
 }
 
 func (img *UnderbyteImage) DecodeMessage(w io.Writer) {
-	var decoded string
+	var decoded []byte
 
 	for x := 0; x < img.dimensions.X; x++ {
-		message, endOfMessage := processColumn(x, img.image, img.dimensions.Y)
-		decoded += message
+		columnBytes, endOfMessage := processColumn(x, img.image, img.dimensions.Y)
+		decoded = append(decoded, columnBytes...)
 
 		if endOfMessage {
 			break
@@ -107,8 +107,8 @@ func (img *UnderbyteImage) DecodeMessage(w io.Writer) {
 	fmt.Fprintf(w, "%s", decoded)
 }
 
-func processColumn(column int, img *image.NRGBA, maxRow int) (string, bool) {
-	var message string
+func processColumn(column int, img *image.NRGBA, maxRow int) ([]byte, bool) {
+	var columnBytes []byte
 
 	for y := 0; y < maxRow; y++ {
 		nrgba := img.NRGBAAt(column, y)
@@ -126,15 +126,15 @@ func processColumn(column int, img *image.NRGBA, maxRow int) (string, bool) {
 		val += (b & 3) << 2
 		val += (a & 3)
 
-		if string(val) == "\000" {
+		if val == 0 {
 			// Return true to indicate that this substring is the final one in the encoded message.
-			return message, true
+			return columnBytes, true
 		} else {
-			message += string(val)
+			columnBytes = append(columnBytes, byte(val))
 		}
 
 	}
-	return message, false
+	return columnBytes, false
 }
 
 func openImage(filepath string) *os.File {
