@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -78,5 +79,31 @@ func BenchmarkDecodeMessage(b *testing.B) {
 		b.StartTimer()
 		underbyteImage.DecodeMessage(buff)
 
+	}
+}
+
+func TestBytesToInt(t *testing.T) {
+	var testcases = []struct {
+		input    []byte
+		expected uint
+	}{
+		{[]byte{128}, 128},
+		{[]byte{255}, 255},
+		{[]byte{0, 1}, 256},
+		{[]byte{1, 1}, 257},
+		{[]byte{1, 2, 1}, 66049},
+		{[]byte{0, 0, 0}, 0},
+		{[]byte{0, 0, 1}, 65536},
+		{[]byte{}, 0},
+	}
+
+	for _, testcase := range testcases {
+		t.Run(fmt.Sprintf("%v", testcase.input), func(t *testing.T) {
+			actual := bytesToInt(testcase.input)
+
+			if testcase.expected != actual {
+				t.Errorf("expected %d, got %d", testcase.expected, actual)
+			}
+		})
 	}
 }
