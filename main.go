@@ -62,12 +62,12 @@ func main() {
 		exampleBlock := `
 Examples:
   Encoding:
-	underbyte -file image.jpg -message "hello there" -out encoded_image.jpg
-	underbyte -file image.jpg -message "hello there" > encoded_image.jpg
-	cat somefile.txt | underbyte -file image.jpg > encoded_image.jpg
+	underbyte -file image.png -message "hello there" -out encoded_image.png
+	underbyte -file image.png -message "hello there" > encoded_image.png
+	cat somefile.txt | underbyte -file image.png > encoded_image.png
   Decoding:
-  	underbyte -decode -file encoded_image.jpg
-	underbyte -decode -file encoded_image.jpg -out decoded_image.jpg
+  	underbyte -decode -file encoded_image.png
+	underbyte -decode -file encoded_image.png -out decoded_image.png
 `
 		fmt.Fprintln(flag.CommandLine.Output(), exampleBlock)
 	}
