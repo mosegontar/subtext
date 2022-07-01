@@ -6,12 +6,20 @@ import (
 	"io"
 )
 
+// Extract embedded message bytes from supplied image file.
 func (u *UnderbyteImage) DecodeMessage(w io.Writer) {
 	start, end := u.messageStartAndEnd()
 
+	// Message is 0 bytes long, i.e,
+	// empty, so write an empty string.
+	if end == 0 {
+		fmt.Fprint(w, "")
+		return
+	}
+
 	var decoded []byte
-	for i := start; i <= int(end); i++ {
-		x, y := u.nthPixelCoordinates(i)
+	for i := start; i <= end; i++ {
+		x, y := u.nthPixelCoordinates(int(i))
 
 		c := u.colorAtPixel(x, y)
 		val := revealByte(c)
@@ -22,21 +30,17 @@ func (u *UnderbyteImage) DecodeMessage(w io.Writer) {
 	fmt.Fprintf(w, "%s", decoded)
 }
 
-func (u *UnderbyteImage) messageStartAndEnd() (int, int) {
+// Returns the start and end indices of the subset of pixels
+// that encode the embedded message.
+func (u *UnderbyteImage) messageStartAndEnd() (start, end uint) {
 	// Pixel at 0,0 encodes a value indicating the
 	// the number of the subsequent bytes that encode
-	// the message size. Since we 1:1 correspondence
+	// the message size. Since we have 1:1 correspondence
 	// betewen bytes and pixels, this gives us a way to
 	// determine which pixels we need to parse to decode
 	// the embedded message.
 	c := u.colorAtPixel(0, 0)
 	headerPrefix := int(revealByte(c))
-
-	// If there's no prefix value, it means
-	// message size is 0
-	if headerPrefix == 0 {
-		return 0, -1
-	}
 
 	// Decode message size (which is stored in the "headerSuffix")
 	var headerSuffix []byte
@@ -51,32 +55,57 @@ func (u *UnderbyteImage) messageStartAndEnd() (int, int) {
 
 	// Message begins at the start-th pixel and ends
 	// at the end-th pixel.
-	start := int(1 + headerPrefix)
-	end := headerPrefix + bytesToInt(headerSuffix)
+	start = uint(1 + headerPrefix)
+	end = uint(headerPrefix) + bytesToInt(headerSuffix)
 
-	return start, end
+	return
 }
 
-func bytesToInt(b []byte) (total int) {
-	// bytes are in little endian order
+// Convert byte slice to unsigned integer.
+// Assumes bytes are in little endian order.
+func bytesToInt(b []byte) (total uint) {
 	for i := len(b) - 1; i >= 0; i-- {
 		shift := i * 8
-		total += int(b[i]) << shift
+		total += uint(b[i]) << shift
 	}
 	return
 }
 
-func revealByte(c color.NRGBA) uint8 {
-	var val uint8
-	// Reconstruct the byte using the
-	// first two bits of each color value.
-	// Shift bits to the left such that
-	// the values parsed from r become the
-	// the most significant bits of the byte
-	// and the values parsed from a become the least.
+// Extract the embedded byte from a NRGBA color
+
+// Reconstruct the byte using the first two bits of each color value.
+// Shift bits to the left such that the values parsed from c.R become the
+// the most significant bits of the byte and the values parsed from c.A
+// become the least.
+//
+// For example, given an NRGBA color of
+//	{
+//	  R: 255, // 0b11111111
+//	  G: 128, // 0b10000000
+// 	  B: 5,   // 0b00000101
+// 	  A: 1    // 0b00000001
+//	}
+// we extract the two least significant bits from each channel using a bitwise AND
+// 	e.,g, 255 & 3 == 0b11111111
+//		        &
+//			 0b00000011
+//		         ----------
+//		       = 0b00000011 == 3
+//		      
+//
+// Then we shift each value according to the position it should occupy in our reconstructed
+// byte. So our example becomes:
+// 	0b11 << 6 == 3 << 6 == 0b11000000 +
+//	0b00 << 4 == 0 << 4 == 0b00000000 +
+// 	0b01 << 2 == 1 << 2 == 0b00000100 +
+// 	0b01 << 0 == 1 << 0 == 0b00000001
+// 			     --------------
+// 			     = 0b11000101 == 197
+func revealByte(c color.NRGBA) (val uint8) {
 	val += (c.R & 3) << 6
 	val += (c.G & 3) << 4
 	val += (c.B & 3) << 2
 	val += (c.A & 3)
-	return val
+
+	return
 }

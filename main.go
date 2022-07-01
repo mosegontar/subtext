@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 )
 
@@ -29,7 +30,10 @@ func encodeMessage(message string, inputPath string, outFile *os.File) {
 	messageBytes := parseMessage(message)
 	underbyteImage := NewUnderbyteImage(inputPath)
 
-	underbyteImage.EncodeMessage(messageBytes)
+	err := underbyteImage.EncodeMessage(messageBytes)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 
 	underbyteImage.WriteImage(outFile)
 }
