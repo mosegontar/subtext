@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -28,7 +27,6 @@ func TestDecodeMessage(t *testing.T) {
 		actual := buff.Bytes()
 
 		if !reflect.DeepEqual(expected, actual) {
-			fmt.Printf("%s vs %s", string(expected), string(actual))
 			t.Errorf("expected '%v', actual '%v'", expected, actual)
 		}
 	})
@@ -40,8 +38,9 @@ func BenchmarkDecodeMessage(b *testing.B) {
 
 	underbyteImage := UnderbyteImage{
 		image: newImage,
-		dimensions: newImage.Bounds().Size()
+		dimensions: newImage.Bounds().Size(),
 	}
+
 	underbytetest.FillPixels(
 		underbyteImage.image,
 		underbyteImage.dimensions.X,
