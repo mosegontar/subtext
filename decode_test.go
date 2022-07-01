@@ -30,6 +30,26 @@ func TestDecodeMessage(t *testing.T) {
 			t.Errorf("expected '%v', actual '%v'", expected, actual)
 		}
 	})
+
+	t.Run("correctly decoes an embedded message that is larger than a single byte", func(t *testing.T) {
+		message := []byte(strings.Repeat("A", 256) + strings.Repeat("B", 256))
+		newImage := underbytetest.BlankImage(300, 300)
+		underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
+		underbytetest.FillPixels(underbyteImage.image, underbyteImage.dimensions.X, underbyteImage.dimensions.Y)
+
+		underbyteImage.EncodeMessage(message)
+
+		buff := new(bytes.Buffer)
+		underbyteImage.DecodeMessage(buff)
+
+		expected := message
+		actual := buff.Bytes()
+
+		if len(actual) != 512 || !reflect.DeepEqual(expected, actual) {
+			t.Errorf("expected '%v', actual '%v'", expected, actual)
+		}
+
+	})
 }
 
 func BenchmarkDecodeMessage(b *testing.B) {
@@ -37,7 +57,7 @@ func BenchmarkDecodeMessage(b *testing.B) {
 	message := []byte(strings.Repeat("Z", 4750*4750))
 
 	underbyteImage := UnderbyteImage{
-		image: newImage,
+		image:      newImage,
 		dimensions: newImage.Bounds().Size(),
 	}
 

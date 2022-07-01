@@ -91,7 +91,7 @@ func bytesToInt(b []byte) (total uint) {
 //			 0b00000011
 //		         ----------
 //		       = 0b00000011 == 3
-//		      
+//
 //
 // Then we shift each value according to the position it should occupy in our reconstructed
 // byte. So our example becomes:
