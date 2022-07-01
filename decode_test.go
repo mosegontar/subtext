@@ -36,13 +36,16 @@ func TestDecodeMessage(t *testing.T) {
 
 func BenchmarkDecodeMessage(b *testing.B) {
 	newImage := underbytetest.BlankImage(5000, 5000)
-	message := []byte(strings.Repeat("Z", 4500*4500))
+	message := []byte(strings.Repeat("Z", 4750*4750))
 
 	underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
 	img := underbyteImage.image
 	underbytetest.FillPixels(img, underbyteImage.dimensions.X, underbyteImage.dimensions.Y)
 
-	underbyteImage.EncodeMessage(message)
+	err := underbyteImage.EncodeMessage(message)
+	if err != nil {
+		b.Fatal(err.Error())
+	}
 
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
