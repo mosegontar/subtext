@@ -31,7 +31,7 @@ func TestDecodeMessage(t *testing.T) {
 		}
 	})
 
-	t.Run("correctly decoes an embedded message that is larger than a single byte", func(t *testing.T) {
+	t.Run("correctly decodes an embedded message whose size must be represented in more than one byte", func(t *testing.T) {
 		message := []byte(strings.Repeat("A", 256) + strings.Repeat("B", 256))
 		newImage := underbytetest.BlankImage(300, 300)
 		underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
