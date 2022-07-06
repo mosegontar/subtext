@@ -6,6 +6,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/mosegontar/underbyte"
+	"github.com/mosegontar/underbyte/server"
 )
 
 func parseMessage(message string) []byte {
@@ -22,13 +25,16 @@ func parseMessage(message string) []byte {
 }
 
 func decodeMessage(filepath string, outFile *os.File) {
-	sourceImage := NewUnderbyteImage(filepath)
-	sourceImage.DecodeMessage(outFile)
+	s := underbyte.SourceImagePath(filepath)
+	ub := underbyte.NewUnderbyteImage(s)
+	ub.DecodeMessage(outFile)
 }
 
 func encodeMessage(message string, inputPath string, outFile *os.File) {
+	s := underbyte.SourceImagePath(inputPath)
+	underbyteImage := underbyte.NewUnderbyteImage(s)
+
 	messageBytes := parseMessage(message)
-	underbyteImage := NewUnderbyteImage(inputPath)
 
 	err := underbyteImage.EncodeMessage(messageBytes)
 	if err != nil {
@@ -59,6 +65,8 @@ func main() {
 	decode := flag.Bool("decode", false, "Decode message from image instead of encoding (default false)")
 	message := flag.String("message", "", "message to encode (STDIN used if not specified)")
 
+	serve := flag.Bool("serve", false, "run http server")
+
 	var defaultUsage func()
 	defaultUsage = flag.Usage
 	flag.Usage = func() {
@@ -78,15 +86,20 @@ Examples:
 
 	flag.Parse()
 
-	f, err := outputFile(*outpath)
-	if err != nil {
-		panic(err.Error())
-	}
-	defer f.Close()
+	if !*serve {
+		f, err := outputFile(*outpath)
+		if err != nil {
+			panic(err.Error())
+		}
+		defer f.Close()
 
-	if *decode {
-		decodeMessage(*filepath, f)
+		if *decode {
+			decodeMessage(*filepath, f)
+		} else {
+			encodeMessage(*message, *filepath, f)
+		}
+
 	} else {
-		encodeMessage(*message, *filepath, f)
+		server.Start()
 	}
 }

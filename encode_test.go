@@ -1,4 +1,4 @@
-package main
+package underbyte
 
 import (
 	"image/color"
