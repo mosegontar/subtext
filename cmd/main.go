@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/mosegontar/underbyte"
-	"github.com/mosegontar/underbyte/server"
 )
 
 func parseMessage(message string) []byte {
@@ -65,8 +64,6 @@ func main() {
 	decode := flag.Bool("decode", false, "Decode message from image instead of encoding (default false)")
 	message := flag.String("message", "", "message to encode (STDIN used if not specified)")
 
-	serve := flag.Bool("serve", false, "run http server")
-
 	var defaultUsage func()
 	defaultUsage = flag.Usage
 	flag.Usage = func() {
@@ -86,20 +83,16 @@ Examples:
 
 	flag.Parse()
 
-	if !*serve {
-		f, err := outputFile(*outpath)
-		if err != nil {
-			panic(err.Error())
-		}
-		defer f.Close()
-
-		if *decode {
-			decodeMessage(*filepath, f)
-		} else {
-			encodeMessage(*message, *filepath, f)
-		}
-
-	} else {
-		server.Start()
+	f, err := outputFile(*outpath)
+	if err != nil {
+		panic(err.Error())
 	}
+	defer f.Close()
+
+	if *decode {
+		decodeMessage(*filepath, f)
+	} else {
+		encodeMessage(*message, *filepath, f)
+	}
+
 }
