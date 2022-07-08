@@ -1,6 +1,7 @@
-package main
+package underbyte
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	"image/draw"
@@ -16,8 +17,24 @@ type UnderbyteImage struct {
 	dimensions image.Point
 }
 
-func NewUnderbyteImage(sourceFilename string) *UnderbyteImage {
-	original := imageData(sourceFilename)
+type SourceImagePath string
+type SourceImageBytes []byte
+
+type ImageLoader interface {
+	loadImageData() image.Image
+}
+
+func (s SourceImagePath) loadImageData() image.Image {
+	return imageData(string(s))
+}
+
+func (s SourceImageBytes) loadImageData() image.Image {
+	reader := bytes.NewReader(s)
+	return decodeImage(reader)
+}
+
+func NewUnderbyteImage(source ImageLoader) *UnderbyteImage {
+	original := source.loadImageData()
 	originalBounds := original.Bounds()
 
 	rectangle := image.Rect(0, 0, originalBounds.Dx(), originalBounds.Dy())
@@ -50,8 +67,8 @@ func openImage(filepath string) *os.File {
 	return imgfile
 }
 
-func decodeImage(f *os.File) image.Image {
-	img, _, err := image.Decode(f)
+func decodeImage(r io.Reader) image.Image {
+	img, _, err := image.Decode(r)
 	if err != nil {
 		panic(err.Error())
 	}

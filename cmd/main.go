@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/mosegontar/underbyte"
 )
 
 func parseMessage(message string) []byte {
@@ -22,13 +24,16 @@ func parseMessage(message string) []byte {
 }
 
 func decodeMessage(filepath string, outFile *os.File) {
-	sourceImage := NewUnderbyteImage(filepath)
-	sourceImage.DecodeMessage(outFile)
+	s := underbyte.SourceImagePath(filepath)
+	ub := underbyte.NewUnderbyteImage(s)
+	ub.DecodeMessage(outFile)
 }
 
 func encodeMessage(message string, inputPath string, outFile *os.File) {
+	s := underbyte.SourceImagePath(inputPath)
+	underbyteImage := underbyte.NewUnderbyteImage(s)
+
 	messageBytes := parseMessage(message)
-	underbyteImage := NewUnderbyteImage(inputPath)
 
 	err := underbyteImage.EncodeMessage(messageBytes)
 	if err != nil {
@@ -89,4 +94,5 @@ Examples:
 	} else {
 		encodeMessage(*message, *filepath, f)
 	}
+
 }

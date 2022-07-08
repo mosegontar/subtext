@@ -1,4 +1,4 @@
-package main
+package underbyte
 
 import (
 	"fmt"
@@ -40,11 +40,11 @@ func (u *UnderbyteImage) messageStartAndEnd() (start, end uint) {
 	// determine which pixels we need to parse to decode
 	// the embedded message.
 	c := u.colorAtPixel(0, 0)
-	headerPrefix := int(revealByte(c))
+	headerPrefix := revealByte(c)
 
 	// Decode message size (which is stored in the "headerSuffix")
 	var headerSuffix []byte
-	for i := 1; i <= headerPrefix; i++ {
+	for i := 1; i <= int(headerPrefix); i++ {
 		x, y := u.nthPixelCoordinates(i)
 
 		pixelColor := u.colorAtPixel(x, y)
