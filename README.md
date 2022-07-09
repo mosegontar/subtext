@@ -25,7 +25,7 @@ Now you can settle in for a long read :)
 ## Installation
 ### Building from source
 ```
-go build
+go build -o underbyte cmd/main.go
 ```
 
 ## Usage
