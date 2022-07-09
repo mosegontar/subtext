@@ -18,16 +18,7 @@ func (u *UnderbyteImage) DecodeMessage(w io.Writer) {
 		return
 	}
 
-	var decoded []byte
-	for i := start; i <= end; i++ {
-		x, y := u.nthPixelCoordinates(int(i))
-
-		c := u.colorAtPixel(x, y)
-		val := revealByte(c)
-
-		decoded = append(decoded, byte(val))
-	}
-
+	decoded := u.parseBytes(int(start), int(end+1))
 	fmt.Fprintf(w, "%s", decoded)
 }
 
@@ -45,17 +36,27 @@ func (u *UnderbyteImage) decodeHeader() MessageHeader {
 	}
 
 	offset := header.messageOffset()
+	remainingBytes := u.parseBytes(1, int(offset))
 
-	for i := 1; i < int(offset); i++ {
-		x, y := u.nthPixelCoordinates(i)
-
-		pixelColor := u.colorAtPixel(x, y)
-		val := revealByte(pixelColor)
-
-		header.data = append(header.data, val)
-	}
+	header.data = append(header.data, remainingBytes...)
 
 	return header
+}
+
+func (u *UnderbyteImage) parseBytes(first, last int) []byte {
+	collection := []byte{}
+
+	for i := first; i < last; i++ {
+		x, y := u.nthPixelCoordinates(i)
+
+		c := u.colorAtPixel(x, y)
+		val := revealByte(c)
+
+		collection = append(collection, val)
+	}
+
+	return collection
+
 }
 
 // Extract the embedded byte from a NRGBA color
