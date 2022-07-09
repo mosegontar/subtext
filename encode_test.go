@@ -1,10 +1,7 @@
 package underbyte
 
 import (
-	"fmt"
 	"image/color"
-	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/mosegontar/underbyte/underbytetest"
@@ -82,69 +79,6 @@ func TestEncodeMessage(t *testing.T) {
 
 		if err == nil {
 			t.Errorf("expected an error but did not get one")
-		}
-	})
-}
-
-func TestBuildHeader(t *testing.T) {
-	t.Run("message with 0 bytes returns single byte with value of 0", func(t *testing.T) {
-		message := []byte{}
-		expected := []byte{byte(0)}
-		actual := buildHeader(message)
-
-		if !reflect.DeepEqual(expected, actual) {
-			t.Errorf("expected %v, actual %v", expected, actual)
-		}
-	})
-
-	t.Run("message with more than one byte", func(t *testing.T) {
-		var testcases = []struct {
-			message      []byte
-			headerPrefix byte
-			headerSuffix []byte
-		}{
-			{
-				message:      []byte("a"),
-				headerPrefix: uint8(1),
-				headerSuffix: []byte{1},
-			},
-			{
-				message:      []byte(strings.Repeat("a", 255)),
-				headerPrefix: uint8(1),
-				headerSuffix: []byte{255},
-			},
-			{
-				message:      []byte(strings.Repeat("a", 256)),
-				headerPrefix: uint8(2),
-				headerSuffix: []byte{0, 1},
-			},
-			{
-				message:      []byte(strings.Repeat("😇", 65432)),
-				headerPrefix: uint8(3),
-				headerSuffix: []byte{96, 254, 3},
-			},
-		}
-
-		for _, testcase := range testcases {
-			t.Run(fmt.Sprintf("with message %d bytes long, headerPrefix is correct", len(testcase.message)), func(t *testing.T) {
-				header := buildHeader(testcase.message)
-				if header[0] != testcase.headerPrefix {
-					t.Errorf("expected headerPrefix %v, got %v", testcase.headerPrefix, header[0])
-				}
-
-				if header[0] != uint8(len(header[1:])) {
-					t.Errorf("headerPrefix %v does not match number of remaining header bytes %v", testcase.headerPrefix, uint8(len(header[1:])))
-				}
-			})
-
-			t.Run(fmt.Sprintf("with message %d bytes long, headersuffix is correct", len(testcase.message)), func(t *testing.T) {
-				header := buildHeader(testcase.message)
-
-				if !reflect.DeepEqual(header[1:], testcase.headerSuffix) {
-					t.Errorf("expected headerSuffix %v, got %v", testcase.headerSuffix, header[1:])
-				}
-			})
-
 		}
 	})
 }

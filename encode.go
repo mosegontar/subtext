@@ -6,8 +6,8 @@ import (
 )
 
 func (u *UnderbyteImage) EncodeMessage(rawMessage []byte) error {
-	header := buildHeader(rawMessage)
-	message := append(header, rawMessage...)
+	header := newHeader(rawMessage)
+	message := append(header.Bytes(), rawMessage...)
 
 	if len(message) > (u.dimensions.X * u.dimensions.Y) {
 		return errors.New("message size > pixel count")
@@ -63,22 +63,4 @@ func (u *UnderbyteImage) EncodeMessage(rawMessage []byte) error {
 		u.image.SetNRGBA(x, y, color)
 	}
 	return nil
-}
-
-func buildHeader(message []byte) (header []byte) {
-	total := len(message)
-	header = []byte{}
-
-	headerSuffix := []byte{}
-	for total > 0 {
-		current := total & 255
-		headerSuffix = append(headerSuffix, uint8(current))
-		total = total >> 8
-	}
-	headerPrefix := uint8(len(headerSuffix))
-
-	header = append(header, headerPrefix)
-	header = append(header, headerSuffix...)
-
-	return
 }

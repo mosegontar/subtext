@@ -8,7 +8,8 @@ import (
 
 // Extract embedded message bytes from supplied image file.
 func (u *UnderbyteImage) DecodeMessage(w io.Writer) {
-	start, end := u.messageStartAndEnd()
+	header := u.decodeHeader()
+	start, end := header.messageOffset(), header.messageEnd()
 
 	// Message is 0 bytes long, i.e,
 	// empty, so write an empty string.
@@ -30,9 +31,7 @@ func (u *UnderbyteImage) DecodeMessage(w io.Writer) {
 	fmt.Fprintf(w, "%s", decoded)
 }
 
-// Returns the start and end indices of the subset of pixels
-// that encode the embedded message.
-func (u *UnderbyteImage) messageStartAndEnd() (start, end uint) {
+func (u *UnderbyteImage) decodeHeader() MessageHeader {
 	// Pixel at 0,0 encodes a value indicating the
 	// the number of the subsequent bytes that encode
 	// the message size. Since we have 1:1 correspondence
@@ -40,35 +39,23 @@ func (u *UnderbyteImage) messageStartAndEnd() (start, end uint) {
 	// determine which pixels we need to parse to decode
 	// the embedded message.
 	c := u.colorAtPixel(0, 0)
-	headerPrefix := revealByte(c)
 
-	// Decode message size (which is stored in the "headerSuffix")
-	var headerSuffix []byte
-	for i := 1; i <= int(headerPrefix); i++ {
+	header := MessageHeader{
+		data: []byte{revealByte(c)},
+	}
+
+	offset := header.messageOffset()
+
+	for i := 1; i < int(offset); i++ {
 		x, y := u.nthPixelCoordinates(i)
 
 		pixelColor := u.colorAtPixel(x, y)
 		val := revealByte(pixelColor)
 
-		headerSuffix = append(headerSuffix, val)
+		header.data = append(header.data, val)
 	}
 
-	// Message begins at the start-th pixel and ends
-	// at the end-th pixel.
-	start = uint(1 + headerPrefix)
-	end = uint(headerPrefix) + bytesToInt(headerSuffix)
-
-	return
-}
-
-// Convert byte slice to unsigned integer.
-// Assumes bytes are in little endian order.
-func bytesToInt(b []byte) (total uint) {
-	for i := len(b) - 1; i >= 0; i-- {
-		shift := i * 8
-		total += uint(b[i]) << shift
-	}
-	return
+	return header
 }
 
 // Extract the embedded byte from a NRGBA color
