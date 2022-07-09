@@ -8,7 +8,7 @@ This is a **toy** project I've worked on to learn Go while on parental leave, du
 
 ## Example:
 This image of Leo Tolstoy encodes an epub of the entirety of _War and Peace_.
-![Leo Tolstoy](./tolstoy_war_and_peace.png?raw=true "Leo Tolstoy")
+![Leo Tolstoy](./assets/tolstoy_war_and_peace.png?raw=true "Leo Tolstoy")
 It was created by running
 ```
 cat war_and_peace.epub| ./underbyte -file tolstoy.jpg -out tolstoy_war_and_peace.png
