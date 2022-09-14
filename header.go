@@ -1,56 +1,40 @@
 package underbyte
 
+import (
+	"encoding/binary"
+	"math"
+)
+
 type MessageHeader struct {
-	data []byte
+	size           int
+	pixelByteRatio float64
 }
 
 func (m *MessageHeader) Bytes() []byte {
-	return m.data
+	buf := make([]byte, 4)
+	binary.BigEndian.PutUint32(buf, uint32(m.size))
+	return buf
 }
 
-func (m *MessageHeader) messageOffset() uint {
-	return uint(1 + m.data[0])
+func (m *MessageHeader) messageOffset() int {
+	n := len(m.Bytes())
+	pixelCount := math.Round(float64(n) * m.pixelByteRatio)
+	return int(pixelCount)
 }
 
-func (m *MessageHeader) messageEnd() uint {
-	offset := uint(m.data[0])
-	return offset + m.messageSize()
+func (m *MessageHeader) messageEnd() int {
+	headerSize := binary.BigEndian.Uint32(m.Bytes())
+	pixelCount := math.Round(float64(headerSize) * m.pixelByteRatio)
+	return m.messageOffset() + int(pixelCount)
 }
 
-func (m *MessageHeader) messageSize() uint {
-	return bytesToInt(m.data[1:])
-}
-
-func newHeader(message []byte) MessageHeader {
+func newHeader(message []byte, ratio float64) MessageHeader {
 	size := len(message)
 
-	headerSuffix := intToBytes(size)
-	headerPrefix := uint8(len(headerSuffix))
-
-	header := MessageHeader{data: []byte{headerPrefix}}
-	header.data = append(header.data, headerSuffix...)
+	header := MessageHeader{
+		size:           size,
+		pixelByteRatio: math.Max(ratio, 0.5),
+	}
 
 	return header
-}
-
-func intToBytes(val int) []byte {
-	b := []byte{}
-
-	for val > 0 {
-		current := val & 255
-		b = append(b, uint8(current))
-		val = val >> 8
-	}
-
-	return b
-}
-
-// Convert byte slice to unsigned integer.
-// Assumes bytes are in little endian order.
-func bytesToInt(b []byte) (total uint) {
-	for i := len(b) - 1; i >= 0; i-- {
-		shift := i * 8
-		total += uint(b[i]) << shift
-	}
-	return
 }

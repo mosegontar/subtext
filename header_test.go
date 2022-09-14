@@ -1,7 +1,6 @@
 package underbyte
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -9,51 +8,51 @@ import (
 
 var testcases = []struct {
 	message        []byte
-	expectedOffset uint
-	expectedEnd    uint
-	expectedSize   uint
+	expectedOffset int
+	expectedEnd    int
+	expectedSize   int
 	expectedBytes  []byte
 }{
 	{
 		message:        []byte{},
-		expectedOffset: uint(1),
-		expectedEnd:    uint(0),
-		expectedSize:   uint(0),
-		expectedBytes:  []byte{0},
+		expectedOffset: int(2),
+		expectedEnd:    int(2),
+		expectedSize:   int(0),
+		expectedBytes:  []byte{0, 0, 0, 0},
 	},
 	{
 		message:        []byte("a"),
-		expectedOffset: uint(2),
-		expectedEnd:    uint(2),
-		expectedSize:   uint(1),
-		expectedBytes:  []byte{1, 1},
+		expectedOffset: int(2),
+		expectedEnd:    int(3),
+		expectedSize:   int(1),
+		expectedBytes:  []byte{0, 0, 0, 1},
 	},
 	{
 		message:        []byte(strings.Repeat("a", 255)),
-		expectedOffset: uint(2),
-		expectedEnd:    uint(256),
-		expectedSize:   uint(255),
-		expectedBytes:  []byte{1, 255},
+		expectedOffset: int(2),
+		expectedEnd:    int(130),
+		expectedSize:   int(255),
+		expectedBytes:  []byte{0, 0, 0, 255},
 	},
 	{
 		message:        []byte(strings.Repeat("a", 256)),
-		expectedOffset: uint(3),
-		expectedEnd:    uint(258),
-		expectedSize:   uint(256),
-		expectedBytes:  []byte{2, 0, 1},
+		expectedOffset: int(2),
+		expectedEnd:    int(130),
+		expectedSize:   int(256),
+		expectedBytes:  []byte{0, 0, 1, 0},
 	},
 	{
 		message:        []byte(strings.Repeat("😇", 65432)),
-		expectedOffset: uint(4),
-		expectedEnd:    uint(261731),
-		expectedSize:   uint(261728),
-		expectedBytes:  []byte{3, 96, 254, 3},
+		expectedOffset: int(2),
+		expectedEnd:    int(130866),
+		expectedSize:   int(261728),
+		expectedBytes:  []byte{0, 3, 254, 96},
 	},
 }
 
 func TestBytes(t *testing.T) {
 	for _, testcase := range testcases {
-		header := newHeader(testcase.message)
+		header := newHeader(testcase.message, 0.5)
 
 		expected := testcase.expectedBytes
 		actual := header.Bytes()
@@ -66,7 +65,7 @@ func TestBytes(t *testing.T) {
 
 func TestMessageOffset(t *testing.T) {
 	for _, testcase := range testcases {
-		header := newHeader(testcase.message)
+		header := newHeader(testcase.message, 0.5)
 		expected := testcase.expectedOffset
 		actual := header.messageOffset()
 
@@ -76,56 +75,14 @@ func TestMessageOffset(t *testing.T) {
 	}
 }
 
-func TestMessageSize(t *testing.T) {
-	for _, testcase := range testcases {
-		header := newHeader(testcase.message)
-		expected := testcase.expectedSize
-		actual := header.messageSize()
-
-		if expected != actual {
-			t.Errorf("expected %v, actual %v", expected, actual)
-		}
-	}
-}
-
 func TestMessageEnd(t *testing.T) {
 	for _, testcase := range testcases {
-		header := newHeader(testcase.message)
+		header := newHeader(testcase.message, 0.5)
 		expected := testcase.expectedEnd
 		actual := header.messageEnd()
 
 		if expected != actual {
 			t.Errorf("expected %v, actual %v", expected, actual)
 		}
-	}
-}
-
-func TestBytesToInt(t *testing.T) {
-	var testcases = []struct {
-		input    []byte
-		expected uint
-	}{
-		{[]byte{128}, 128},
-		{[]byte{255}, 255},
-		{[]byte{0, 1}, 256},
-		{[]byte{1, 1}, 257},
-		{[]byte{255, 1}, 511},
-		{[]byte{0, 2, 0}, 512},
-		{[]byte{8, 2, 0}, 520},
-		{[]byte{1, 2, 1}, 66049},
-		{[]byte{0, 0, 0}, 0},
-		{[]byte{0, 0, 1}, 65536},
-		{[]byte{19, 0, 1}, 65555},
-		{[]byte{}, 0},
-	}
-
-	for _, testcase := range testcases {
-		t.Run(fmt.Sprintf("%v", testcase.input), func(t *testing.T) {
-			actual := bytesToInt(testcase.input)
-
-			if testcase.expected != actual {
-				t.Errorf("expected %d, got %d", testcase.expected, actual)
-			}
-		})
 	}
 }

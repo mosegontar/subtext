@@ -24,28 +24,19 @@ func TestEncodeMessage(t *testing.T) {
 
 		underbyteImage.EncodeMessage(message)
 
-		// header prefix
-		checkColors([4]int{0, 0, 0, 1}, 0, 0)
+		// header with size in bytes of message
+		checkColors([4]int{0, 0, 0, 0}, 0, 0)
+		checkColors([4]int{0, 0, 0, 5}, 1, 0)
 
-		// header suffix
-		checkColors([4]int{0, 0, 1, 1}, 1, 0)
+		//                 h     e
+		checkColors([4]int{6, 8, 6, 5}, 2, 0)
+		//                 l      l
+		checkColors([4]int{6, 12, 6, 12}, 3, 0)
 
-		// h
-		checkColors([4]int{1, 2, 2, 0}, 2, 0)
+		//                 o
+		checkColors([4]int{6, 15, 0, 0}, 4, 0)
 
-		// e
-		checkColors([4]int{1, 2, 1, 1}, 3, 0)
-
-		// l
-		checkColors([4]int{1, 2, 3, 0}, 4, 0)
-
-		// l
-		checkColors([4]int{1, 2, 3, 0}, 5, 0)
-
-		// o
-		checkColors([4]int{1, 2, 3, 3}, 6, 0)
-
-		for i := 7; i < 10; i++ {
+		for i := 5; i < 10; i++ {
 			checkColors([4]int{0, 0, 0, 0}, i, 0)
 		}
 
@@ -62,7 +53,7 @@ func TestEncodeMessage(t *testing.T) {
 		underbyteImage.EncodeMessage(message)
 
 		checkColors := underbytetest.PixelColorChecker(underbyteImage.image, t)
-		checkColors([4]int{121, 254, 31, 4}, 4, 0)
+		checkColors([4]int{118, 255, 16, 0}, 4, 0)
 	})
 
 	t.Run("does not modify pixels that are outside the image dimensions and returns an error", func(t *testing.T) {
