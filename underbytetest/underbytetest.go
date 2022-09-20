@@ -37,7 +37,7 @@ func PixelColorChecker(img *image.NRGBA, t *testing.T) func([4]int, int, int) {
 		actualColors := img.NRGBAAt(x, y)
 
 		if !reflect.DeepEqual(expectedColors, actualColors) {
-			t.Errorf("expected %v, actual %v", expectedColors, actualColors)
+			t.Errorf("expected %v for x %d y %d, actual %v", expectedColors, x, y, actualColors)
 		}
 	}
 }
