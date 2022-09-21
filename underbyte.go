@@ -15,6 +15,7 @@ import (
 type UnderbyteImage struct {
 	image      *image.NRGBA
 	dimensions image.Point
+	strategy   PackingStrategy
 }
 
 type SourceImagePath string
@@ -57,6 +58,10 @@ func (u *UnderbyteImage) nthPixelCoordinates(n int) (x, y int) {
 	x = n / u.dimensions.Y
 	y = n % u.dimensions.Y
 	return
+}
+
+func (u *UnderbyteImage) pixelCount() int {
+	return u.dimensions.X * u.dimensions.Y
 }
 
 func openImage(filepath string) *os.File {
