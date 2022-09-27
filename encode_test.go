@@ -27,7 +27,9 @@ func TestEncodeMessage(t *testing.T) {
 
 		underbyteImage.EncodeMessage(message)
 
-		// header with size in bytes of message
+		// header with size in bytes of message.
+		// header is 4 bytes long, so takes up
+		// two pixels.
 		checkColors([4]int{0, 0, 0, 0}, 0, 0)
 		checkColors([4]int{0, 0, 0, 5}, 1, 0)
 
@@ -67,22 +69,20 @@ func TestEncodeMessage(t *testing.T) {
 
 		// header with size in bytes of message
 		checkColors([4]int{0, 0, 0, 0}, 0, 0)
-		checkColors([4]int{0, 0, 0, 0}, 1, 0)
-		checkColors([4]int{0, 0, 0, 0}, 2, 0)
-		checkColors([4]int{0, 0, 1, 1}, 3, 0)
+		checkColors([4]int{0, 0, 0, 5}, 1, 0)
 
 		//                 h
-		checkColors([4]int{1, 2, 2, 0}, 4, 0)
+		checkColors([4]int{1, 2, 2, 0}, 2, 0)
 		//                 e
-		checkColors([4]int{1, 2, 1, 1}, 5, 0)
+		checkColors([4]int{1, 2, 1, 1}, 3, 0)
 		//                 l
-		checkColors([4]int{1, 2, 3, 0}, 6, 0)
+		checkColors([4]int{1, 2, 3, 0}, 4, 0)
 		//		   l
-		checkColors([4]int{1, 2, 3, 0}, 7, 0)
+		checkColors([4]int{1, 2, 3, 0}, 5, 0)
 		//                 o
-		checkColors([4]int{1, 2, 3, 3}, 8, 0)
+		checkColors([4]int{1, 2, 3, 3}, 6, 0)
 
-		for i := 9; i < 10; i++ {
+		for i := 7; i < 10; i++ {
 			checkColors([4]int{0, 0, 0, 0}, i, 0)
 		}
 	})

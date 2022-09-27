@@ -25,7 +25,7 @@ func (u *UnderbyteImage) DecodeMessage(w io.Writer) {
 }
 
 func (u *UnderbyteImage) decodeHeader() MessageHeader {
-	headerBytes := u.parseBytes(0, 8)
+	headerBytes := u.parseBytes(0, 4)
 	headerValue := binary.BigEndian.Uint32(headerBytes)
 
 	header := MessageHeader{
@@ -50,6 +50,23 @@ func (u *UnderbyteImage) parseBytes(first, last int) []byte {
 
 	}
 	return collection
+}
+
+func (sp SinglePackStrategy) unpack(u *UnderbyteImage, pixelStart, pixelEnd int) []byte {
+	byteCollection := []byte{}
+
+	for i := pixelStart; i < pixelEnd; i++ {
+		x, y := u.nthPixelCoordinates(i)
+
+		c := u.colorAtPixel(x, y)
+		firstByte, secondByte := revealBytes(c)
+
+		byteCollection = append(byteCollection, firstByte)
+		byteCollection = append(byteCollection, secondByte)
+
+	}
+
+	return byteCollection
 }
 
 func revealBytes(c color.NRGBA) (firstByte, secondByte byte) {

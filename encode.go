@@ -5,15 +5,14 @@ import (
 	"image/color"
 )
 
-func (u *UnderbyteImage) EncodeMessage(rawMessage []byte) error {
-	header := newHeader(rawMessage, 0.5)
-	message := append(header.Bytes(), rawMessage...)
+func (u *UnderbyteImage) EncodeMessage(message []byte) error {
+	header := newHeader(message, 0.5)
 
 	if u.strategy == nil {
 		u.strategy = DoublePackStrategy{}
 	}
 
-	err := u.embedBytes(message)
+	err := u.embedBytes(&header, message)
 
 	if err != nil {
 		return err
@@ -22,26 +21,34 @@ func (u *UnderbyteImage) EncodeMessage(rawMessage []byte) error {
 	return nil
 }
 
-func (u *UnderbyteImage) embedBytes(message []byte) error {
-	if u.strategy.messageTooLarge(u, message) {
+func (u *UnderbyteImage) embedBytes(header *MessageHeader, message []byte) error {
+	if u.strategy.messageTooLarge(u, header.Bytes(), message) {
 		return errors.New("message size > pixel count")
 	}
-	u.strategy.pack(u, message)
+
+	offset := header.strategy.pack(u, header.Bytes(), 0)
+	u.strategy.pack(u, message, offset)
 
 	return nil
 }
 
-func (dp DoublePackStrategy) messageTooLarge(u *UnderbyteImage, message []byte) bool {
-	return len(message) > 2*u.pixelCount()
+func (dp DoublePackStrategy) messageTooLarge(u *UnderbyteImage, header, message []byte) bool {
+	return len(header)+len(message) > 2*u.pixelCount()
 }
 
-func (sp SinglePackStrategy) messageTooLarge(u *UnderbyteImage, message []byte) bool {
-	return len(message) > u.pixelCount()
+func (sp SinglePackStrategy) messageTooLarge(u *UnderbyteImage, header, message []byte) bool {
+	return len(header)+len(message) > u.pixelCount()
 }
 
-func (dp DoublePackStrategy) pack(u *UnderbyteImage, message []byte) {
+func (dp DoublePackStrategy) pack(u *UnderbyteImage, message []byte, offset int) (nPixel int) {
 
-	for i := 0; i < len(message); i += 2 {
+	nthPixel := func(offset, index int) int {
+		return (index / 2) + offset
+	}
+
+	var i int
+
+	for i = 0; i < len(message); i += 2 {
 		var rFlip, gFlip, bFlip, aFlip uint8
 
 		bytesToPack := bytesInRange(message, i, 2)
@@ -52,7 +59,7 @@ func (dp DoublePackStrategy) pack(u *UnderbyteImage, message []byte) {
 			bFlip, aFlip = splitByteInTwo(bytesToPack[1])
 		}
 
-		x, y := u.nthPixelCoordinates(i / 2)
+		x, y := u.nthPixelCoordinates(nthPixel(offset, i))
 		nrgba := u.colorAtPixel(x, y)
 
 		// Replace the last 4 bits of the NRGBA color
@@ -67,10 +74,18 @@ func (dp DoublePackStrategy) pack(u *UnderbyteImage, message []byte) {
 		u.image.SetNRGBA(x, y, color)
 	}
 
+	return nthPixel(offset, i)
 }
 
-func (sp SinglePackStrategy) pack(u *UnderbyteImage, message []byte) {
-	for i := 0; i < len(message); i++ {
+func (sp SinglePackStrategy) pack(u *UnderbyteImage, message []byte, offset int) (nPixel int) {
+
+	nthPixel := func(offset, index int) int {
+		return offset + index
+	}
+
+	var i int
+
+	for i = 0; i < len(message); i++ {
 		messageByte := message[i]
 
 		rFlip := (messageByte & 192) >> 6
@@ -78,7 +93,7 @@ func (sp SinglePackStrategy) pack(u *UnderbyteImage, message []byte) {
 		bFlip := (messageByte & 12) >> 2
 		aFlip := (messageByte & 3)
 
-		x, y := u.nthPixelCoordinates(i)
+		x, y := u.nthPixelCoordinates(nthPixel(offset, i))
 		nrgba := u.colorAtPixel(x, y)
 
 		// Replace the last 4 bits of the NRGBA color
@@ -93,6 +108,7 @@ func (sp SinglePackStrategy) pack(u *UnderbyteImage, message []byte) {
 		u.image.SetNRGBA(x, y, color)
 	}
 
+	return nthPixel(offset, i)
 }
 
 func bytesInRange(message []byte, index, count int) []byte {

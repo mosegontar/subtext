@@ -8,6 +8,7 @@ import (
 type MessageHeader struct {
 	size           int
 	pixelByteRatio float64
+	strategy       PackingStrategy
 }
 
 func (m *MessageHeader) Bytes() []byte {
@@ -34,6 +35,7 @@ func newHeader(message []byte, ratio float64) MessageHeader {
 	header := MessageHeader{
 		size:           size,
 		pixelByteRatio: math.Max(ratio, 0.5),
+		strategy:       DoublePackStrategy{},
 	}
 
 	return header
