@@ -6,14 +6,21 @@ import (
 )
 
 func (u *UnderbyteImage) EncodeMessage(message []byte) error {
-	header := newHeader(message, 0.5)
+	header := newHeader(message)
 
-	if u.strategy == nil {
+	pixelsAvailable := u.pixelCount() - header.messageOffset()
+
+	if len(message) > 2*pixelsAvailable {
+		return errors.New("message too large for pixel count")
+	}
+
+	if len(message) > pixelsAvailable {
 		u.strategy = DoublePackStrategy{}
+	} else {
+		u.strategy = SinglePackStrategy{}
 	}
 
 	err := u.embedBytes(&header, message)
-
 	if err != nil {
 		return err
 	}
@@ -22,22 +29,10 @@ func (u *UnderbyteImage) EncodeMessage(message []byte) error {
 }
 
 func (u *UnderbyteImage) embedBytes(header *MessageHeader, message []byte) error {
-	if u.strategy.messageTooLarge(u, header.Bytes(), message) {
-		return errors.New("message size > pixel count")
-	}
-
 	offset := header.strategy.pack(u, header.Bytes(), 0)
 	u.strategy.pack(u, message, offset)
 
 	return nil
-}
-
-func (dp DoublePackStrategy) messageTooLarge(u *UnderbyteImage, header, message []byte) bool {
-	return len(header)+len(message) > 2*u.pixelCount()
-}
-
-func (sp SinglePackStrategy) messageTooLarge(u *UnderbyteImage, header, message []byte) bool {
-	return len(header)+len(message) > u.pixelCount()
 }
 
 func (dp DoublePackStrategy) pack(u *UnderbyteImage, message []byte, offset int) (nPixel int) {

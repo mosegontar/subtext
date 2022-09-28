@@ -6,9 +6,8 @@ import (
 )
 
 type MessageHeader struct {
-	size           int
-	pixelByteRatio float64
-	strategy       PackingStrategy
+	size     int
+	strategy PackingStrategy
 }
 
 func (m *MessageHeader) Bytes() []byte {
@@ -19,23 +18,16 @@ func (m *MessageHeader) Bytes() []byte {
 
 func (m *MessageHeader) messageOffset() int {
 	n := len(m.Bytes())
-	pixelCount := math.Round(float64(n) * m.pixelByteRatio)
+	pixelCount := math.Round(float64(n) / 2)
 	return int(pixelCount)
 }
 
-func (m *MessageHeader) messageEnd() int {
-	headerSize := binary.BigEndian.Uint32(m.Bytes())
-	pixelCount := math.Round(float64(headerSize) * m.pixelByteRatio)
-	return m.messageOffset() + int(pixelCount)
-}
-
-func newHeader(message []byte, ratio float64) MessageHeader {
+func newHeader(message []byte) MessageHeader {
 	size := len(message)
 
 	header := MessageHeader{
-		size:           size,
-		pixelByteRatio: math.Max(ratio, 0.5),
-		strategy:       DoublePackStrategy{},
+		size:     size,
+		strategy: DoublePackStrategy{},
 	}
 
 	return header

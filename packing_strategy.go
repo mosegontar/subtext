@@ -2,7 +2,7 @@ package underbyte
 
 type PackingStrategy interface {
 	pack(*UnderbyteImage, []byte, int) int
-	messageTooLarge(*UnderbyteImage, []byte, []byte) bool
+	unpack(*UnderbyteImage, int, int) []byte
 }
 
 type DoublePackStrategy struct{}

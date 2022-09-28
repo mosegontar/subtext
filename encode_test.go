@@ -11,7 +11,7 @@ func TestEncodeMessage(t *testing.T) {
 	t.Run("sets the image pixels correctly", func(t *testing.T) {
 		message := []byte("hello")
 
-		newImage := underbytetest.BlankImage(10, 1)
+		newImage := underbytetest.BlankImage(5, 1)
 
 		underbyteImage := UnderbyteImage{
 			image:      newImage,
@@ -55,7 +55,6 @@ func TestEncodeMessage(t *testing.T) {
 		underbyteImage := UnderbyteImage{
 			image:      newImage,
 			dimensions: newImage.Bounds().Size(),
-			strategy:   SinglePackStrategy{},
 		}
 
 		checkColors := underbytetest.PixelColorChecker(underbyteImage.image, t)
@@ -90,7 +89,7 @@ func TestEncodeMessage(t *testing.T) {
 	t.Run("sets the image pixels correctly when there are RGBA values greater than 0", func(t *testing.T) {
 		message := []byte("hello")
 
-		newImage := underbytetest.BlankImage(10, 1)
+		newImage := underbytetest.BlankImage(5, 1)
 
 		underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
 		underbyteImage.image.SetNRGBA(4, 0, color.NRGBA{121, 255, 28, 4})
