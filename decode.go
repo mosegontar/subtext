@@ -12,11 +12,10 @@ import (
 func (u *UnderbyteImage) DecodeMessage(w io.Writer) {
 	header := u.decodeHeader()
 
-	var messagePixelCount, startingPixelIndex, endingPixel, pixelsAvailable int
+	startingPixelIndex := header.messageOffset()
+	pixelsAvailable := u.pixelCount() - startingPixelIndex
 
-	startingPixelIndex = header.messageOffset()
-	pixelsAvailable = u.pixelCount() - startingPixelIndex
-
+	var messagePixelCount int
 	if header.size > pixelsAvailable {
 		u.strategy = DoublePackStrategy{}
 		messagePixelCount = int(math.Round(float64(header.size) / 2))
@@ -25,7 +24,7 @@ func (u *UnderbyteImage) DecodeMessage(w io.Writer) {
 		messagePixelCount = header.size
 	}
 
-	endingPixel = startingPixelIndex + messagePixelCount
+	endingPixel := startingPixelIndex + messagePixelCount
 
 	// Message is 0 bytes long, i.e,
 	// empty, so write an empty string.
@@ -57,8 +56,14 @@ func (sp SinglePackStrategy) unpack(u *UnderbyteImage, pixelStart, pixelEnd int)
 	byteCollection := []byte{}
 
 	revealBytes := func(c color.NRGBA) byte {
-		b := (c.R & 3 << 6) | (c.G & 3 << 4) | (c.B & 3 << 2) | (c.A & 3)
-		return b
+		r := (c.R & 3 << 6)
+		g := (c.G & 3 << 4)
+		b := (c.B & 3 << 2)
+		a := (c.A & 3)
+
+		rgba := r | g | b | a
+
+		return rgba
 	}
 
 	for i := pixelStart; i < pixelEnd; i++ {
