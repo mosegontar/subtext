@@ -5,55 +5,99 @@ import (
 	"fmt"
 	"image/color"
 	"io"
+	"math"
 )
 
 // Extract embedded message bytes from supplied image file.
 func (u *UnderbyteImage) DecodeMessage(w io.Writer) {
 	header := u.decodeHeader()
-	start, end := header.messageOffset(), header.messageEnd()
+
+	startingPixelIndex := header.messageOffset()
+	pixelsAvailable := u.pixelCount() - startingPixelIndex
+
+	var messagePixelCount int
+	if header.size > pixelsAvailable {
+		u.strategy = DoublePackStrategy{}
+		messagePixelCount = int(math.Round(float64(header.size) / 2))
+	} else {
+		u.strategy = SinglePackStrategy{}
+		messagePixelCount = header.size
+	}
+
+	endingPixel := startingPixelIndex + messagePixelCount
 
 	// Message is 0 bytes long, i.e,
 	// empty, so write an empty string.
-	if end == 0 {
+	if endingPixel == 0 {
 		fmt.Fprint(w, "")
 		return
 	}
 
-	decoded := u.parseBytes(start, end)
+	decoded := u.parseBytes(startingPixelIndex, endingPixel+header.size%2)
 	message := decoded[:len(decoded)-(header.size%2)]
 	fmt.Fprintf(w, "%s", message)
 }
 
 func (u *UnderbyteImage) decodeHeader() MessageHeader {
-	headerBytes := u.parseBytes(0, 8)
+	mh := MessageHeader{strategy: DoublePackStrategy{}}
+
+	headerBytes := mh.strategy.unpack(u, 0, 2)
 	headerValue := binary.BigEndian.Uint32(headerBytes)
 
-	header := MessageHeader{
-		size:           int(headerValue),
-		pixelByteRatio: 0.5,
-	}
-
-	return header
+	mh.size = int(headerValue)
+	return mh
 }
 
 func (u *UnderbyteImage) parseBytes(first, last int) []byte {
-	collection := []byte{}
+	return u.strategy.unpack(u, first, last)
+}
 
-	for i := first; i < last; i++ {
+func (sp SinglePackStrategy) unpack(u *UnderbyteImage, pixelStart, pixelEnd int) []byte {
+	byteCollection := []byte{}
+
+	revealBytes := func(c color.NRGBA) byte {
+		r := (c.R & 3 << 6)
+		g := (c.G & 3 << 4)
+		b := (c.B & 3 << 2)
+		a := (c.A & 3)
+
+		rgba := r | g | b | a
+
+		return rgba
+	}
+
+	for i := pixelStart; i < pixelEnd; i++ {
+		x, y := u.nthPixelCoordinates(i)
+
+		c := u.colorAtPixel(x, y)
+		rb := revealBytes(c)
+
+		byteCollection = append(byteCollection, rb)
+	}
+
+	return byteCollection
+
+}
+
+func (dp DoublePackStrategy) unpack(u *UnderbyteImage, pixelStart, pixelEnd int) []byte {
+	byteCollection := []byte{}
+
+	revealBytes := func(c color.NRGBA) (byte, byte) {
+		firstByte := (c.R&15)<<4 + (c.G & 15)
+		secondByte := (c.B&15)<<4 + (c.A & 15)
+		return firstByte, secondByte
+	}
+
+	for i := pixelStart; i < pixelEnd; i++ {
 		x, y := u.nthPixelCoordinates(i)
 
 		c := u.colorAtPixel(x, y)
 		firstByte, secondByte := revealBytes(c)
 
-		collection = append(collection, firstByte)
-		collection = append(collection, secondByte)
+		byteCollection = append(byteCollection, firstByte)
+		byteCollection = append(byteCollection, secondByte)
 
 	}
-	return collection
-}
 
-func revealBytes(c color.NRGBA) (firstByte, secondByte byte) {
-	firstByte = (c.R&15)<<4 + (c.G & 15)
-	secondByte = (c.B&15)<<4 + (c.A & 15)
-	return
+	return byteCollection
 }
