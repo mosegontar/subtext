@@ -2,127 +2,75 @@ package underbyte
 
 import (
 	"bytes"
-	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/mosegontar/underbyte/underbytetest"
 )
 
-func TestDecodeMessage(t *testing.T) {
-	t.Run("correctly decodes an embedded message", func(t *testing.T) {
-		message := []byte("hi how are you")
-
-		newImage := underbytetest.BlankImage(300, 300)
-
-		underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
-		underbytetest.FillPixels(underbyteImage.image, underbyteImage.dimensions.X, underbyteImage.dimensions.Y)
-
-		underbyteImage.EncodeMessage(message)
+func TestDecode(t *testing.T) {
+	t.Run("it correctly decodes the encoded message", func(t *testing.T) {
+		u := UnderbyteImage{underbytetest.NewImage(10, 2)}
+		u.Encode([]byte("hello world"))
 
 		buff := new(bytes.Buffer)
-		underbyteImage = UnderbyteImage{image: underbyteImage.image, dimensions: underbyteImage.image.Bounds().Size()}
-		underbyteImage.DecodeMessage(buff)
+		u.Decode(buff)
 
-		expected := message
-		actual := buff.Bytes()
+		expected := "hello world"
+		actual := buff.String()
 
-		if !reflect.DeepEqual(expected, actual) {
-			t.Errorf("expected '%s', actual '%s'", expected, actual)
+		if actual != expected {
+			t.Errorf("expected %s got %s", expected, actual)
 		}
 	})
 
-	t.Run("correctly decodes an embedded message22", func(t *testing.T) {
-		message := []byte("hi how are you")
-
-		newImage := underbytetest.BlankImage(4, 3)
-
-		underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
-		underbytetest.FillPixels(underbyteImage.image, underbyteImage.dimensions.X, underbyteImage.dimensions.Y)
-
-		underbyteImage.EncodeMessage(message)
+	t.Run("it correctly a decodes a message that is longer than the total pixel count", func(t *testing.T) {
+		u := UnderbyteImage{underbytetest.NewImage(10, 2)}
+		message := []byte("hello world!!!!!!")
+		u.Encode(message)
 
 		buff := new(bytes.Buffer)
-		underbyteImage = UnderbyteImage{image: underbyteImage.image, dimensions: underbyteImage.image.Bounds().Size()}
-		underbyteImage.DecodeMessage(buff)
+		u.Decode(buff)
 
-		expected := message
-		actual := buff.Bytes()
+		expected := string(message)
+		actual := buff.String()
 
-		if !reflect.DeepEqual(expected, actual) {
-			t.Errorf("expected '%s', actual '%s'", expected, actual)
-		}
-	})
-
-	t.Run("correctly decodes an embedded message with an odd number of bytes", func(t *testing.T) {
-		message := []byte("hey")
-
-		newImage := underbytetest.BlankImage(300, 300)
-
-		underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
-		underbytetest.FillPixels(underbyteImage.image, underbyteImage.dimensions.X, underbyteImage.dimensions.Y)
-
-		underbyteImage.EncodeMessage(message)
-
-		buff := new(bytes.Buffer)
-		underbyteImage = UnderbyteImage{image: underbyteImage.image, dimensions: underbyteImage.image.Bounds().Size()}
-		underbyteImage.DecodeMessage(buff)
-
-		expected := message
-		actual := buff.Bytes()
-
-		if !reflect.DeepEqual(expected, actual) {
-			t.Errorf("expected '%v', actual '%v'", expected, actual)
-		}
-	})
-
-	t.Run("correctly decodes an embedded message whose size must be represented in more than one byte", func(t *testing.T) {
-		message := []byte(strings.Repeat("A", 256) + strings.Repeat("B", 256))
-		newImage := underbytetest.BlankImage(300, 300)
-		underbyteImage := UnderbyteImage{image: newImage, dimensions: newImage.Bounds().Size()}
-		underbytetest.FillPixels(underbyteImage.image, underbyteImage.dimensions.X, underbyteImage.dimensions.Y)
-
-		underbyteImage.EncodeMessage(message)
-
-		buff := new(bytes.Buffer)
-		underbyteImage = UnderbyteImage{image: underbyteImage.image, dimensions: underbyteImage.image.Bounds().Size()}
-		underbyteImage.DecodeMessage(buff)
-
-		expected := message
-		actual := buff.Bytes()
-
-		if len(actual) != 512 || !reflect.DeepEqual(expected, actual) {
-			t.Errorf("expected '%v', actual '%v'", expected, actual)
+		if actual != expected {
+			t.Errorf("expected %s got %s", expected, actual)
 		}
 
 	})
 }
 
-func BenchmarkDecodeMessage(b *testing.B) {
-	newImage := underbytetest.BlankImage(5000, 5000)
-	message := []byte(strings.Repeat("Z", 4750*4750))
+func Test_singleUnpack(t *testing.T) {
+	t.Run("it writes the expected bytes to the buffer", func(t *testing.T) {
+		u := UnderbyteImage{underbytetest.NewImage(10, 2)}
+		u.Encode([]byte("hello"))
 
-	underbyteImage := UnderbyteImage{
-		image:      newImage,
-		dimensions: newImage.Bounds().Size(),
-	}
-
-	underbytetest.FillPixels(
-		underbyteImage.image,
-		underbyteImage.dimensions.X,
-		underbyteImage.dimensions.Y,
-	)
-
-	err := underbyteImage.EncodeMessage(message)
-	if err != nil {
-		b.Fatal(err.Error())
-	}
-
-	for i := 0; i < b.N; i++ {
-		b.StopTimer()
 		buff := new(bytes.Buffer)
-		b.StartTimer()
-		underbyteImage.DecodeMessage(buff)
+		cursor := NewPixelCursor(headerSize+len("hello"), headerSize)
+		u.singleUnpack(buff, cursor)
 
-	}
+		expected := "hello"
+		actual := buff.String()
+
+		if actual != expected {
+			t.Errorf("expected %v actual %v", expected, actual)
+		}
+	})
+
+}
+
+func Test_getMessageLengthFromHeader(t *testing.T) {
+	t.Run("it returns the correct integer value", func(t *testing.T) {
+		u := UnderbyteImage{underbytetest.NewImage(10, 2)}
+		u.Encode([]byte("hello world"))
+
+		cursor := NewPixelCursor(headerSize, 0)
+		actual := u.getMessageLengthFromHeader(cursor)
+		expected := 11
+
+		if actual != expected {
+			t.Errorf("expected %d actual %d", expected, actual)
+		}
+	})
 }

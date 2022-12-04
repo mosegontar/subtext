@@ -1,7 +1,6 @@
 package underbyte
 
 import (
-	"bytes"
 	"image"
 	"image/color"
 	"image/draw"
@@ -9,29 +8,10 @@ import (
 	"image/png"
 	_ "image/png"
 	"io"
-	"os"
 )
 
 type UnderbyteImage struct {
-	image      *image.NRGBA
-	dimensions image.Point
-	strategy   PackingStrategy
-}
-
-type SourceImagePath string
-type SourceImageBytes []byte
-
-type ImageLoader interface {
-	loadImageData() image.Image
-}
-
-func (s SourceImagePath) loadImageData() image.Image {
-	return imageData(string(s))
-}
-
-func (s SourceImageBytes) loadImageData() image.Image {
-	reader := bytes.NewReader(s)
-	return decodeImage(reader)
+	*image.NRGBA
 }
 
 func NewUnderbyteImage(source ImageLoader) *UnderbyteImage {
@@ -43,48 +23,31 @@ func NewUnderbyteImage(source ImageLoader) *UnderbyteImage {
 
 	draw.Draw(newImage, newImage.Bounds(), original, originalBounds.Min, draw.Src)
 
-	return &UnderbyteImage{image: newImage, dimensions: originalBounds.Size()}
+	return &UnderbyteImage{newImage}
 }
 
 func (u *UnderbyteImage) WriteImage(w io.Writer) {
-	png.Encode(w, u.image)
+	png.Encode(w, u)
 }
 
 func (u *UnderbyteImage) colorAtPixel(x, y int) color.NRGBA {
-	return u.image.NRGBAAt(x, y)
+	return u.NRGBAAt(x, y)
+}
+
+func (u *UnderbyteImage) maxXCoordinate() int {
+	return u.Bounds().Size().X
+}
+
+func (u *UnderbyteImage) maxYCoordinate() int {
+	return u.Bounds().Size().Y
 }
 
 func (u *UnderbyteImage) nthPixelCoordinates(n int) (x, y int) {
-	x = n / u.dimensions.Y
-	y = n % u.dimensions.Y
+	x = n % u.maxXCoordinate()
+	y = n / u.maxXCoordinate()
 	return
 }
 
 func (u *UnderbyteImage) pixelCount() int {
-	return u.dimensions.X * u.dimensions.Y
-}
-
-func openImage(filepath string) *os.File {
-	imgfile, err := os.Open(filepath)
-	if err != nil {
-		panic(err.Error())
-	}
-	return imgfile
-}
-
-func decodeImage(r io.Reader) image.Image {
-	img, _, err := image.Decode(r)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	return img
-}
-
-func imageData(filepath string) image.Image {
-	imgfile := openImage(filepath)
-	defer imgfile.Close()
-	img := decodeImage(imgfile)
-
-	return img
+	return u.maxXCoordinate() * u.maxYCoordinate()
 }

@@ -23,6 +23,10 @@ func FillPixels(img *image.NRGBA, maxX, maxY int) {
 	}
 }
 
+func NewImage(x, y int) *image.NRGBA {
+	return BlankImage(x, y)
+}
+
 func PixelColorChecker(img *image.NRGBA, t *testing.T) func([4]int, int, int) {
 	return func(expectedRGBAVals [4]int, x, y int) {
 		t.Helper()
