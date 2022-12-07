@@ -7,8 +7,6 @@ import (
 	"math"
 )
 
-type unpacker func(*bytes.Buffer, *PixelCursor)
-
 type UnderbyteReader interface {
 	unpack(*UnderbyteImage, *PixelCursor) []byte
 	maxPixels() int
