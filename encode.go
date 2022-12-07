@@ -2,6 +2,7 @@ package underbyte
 
 import (
 	"errors"
+	"fmt"
 	"image/color"
 )
 
@@ -14,7 +15,8 @@ func (u *UnderbyteImage) Encode(message []byte) error {
 	var pack packer
 
 	if totalLength > 2*u.pixelCount() {
-		return errors.New("message too large for pixel count")
+		msg := fmt.Sprintf("message too large for pixelCount (%d, %d)", totalLength, u.pixelCount())
+		return errors.New(msg)
 	} else if totalLength > u.pixelCount() {
 		pack = u.doublePack
 	} else {
@@ -23,6 +25,11 @@ func (u *UnderbyteImage) Encode(message []byte) error {
 
 	cursor := NewPixelCursor(totalLength, 0)
 	u.singlePack(header, cursor)
+
+	if u.options.randomize {
+		cursor = NewRandomizedPixelCursor(*u, cursor.position(), len(message))
+	}
+
 	pack(message, cursor)
 
 	return nil
@@ -42,6 +49,7 @@ func (u *UnderbyteImage) singlePack(message []byte, cursor *PixelCursor) {
 			panic("cursor cannot return any new positions")
 		}
 		x, y := u.nthPixelCoordinates(nthPixel)
+
 		nrgba := u.colorAtPixel(x, y)
 
 		// Replace the last 2 bits of the NRGBA color
@@ -72,6 +80,7 @@ func (u *UnderbyteImage) doublePack(message []byte, cursor *PixelCursor) {
 		// value with the appropriate "flip" value
 		r := ((nrgba.R >> 4) << 4) + rFlip
 		g := ((nrgba.G >> 4) << 4) + gFlip
+
 		// TODO: This is wrong for case where bytesToPack is len 1,
 		// I think. Should modify only if second byte is present.
 		b := ((nrgba.B >> 4) << 4) + bFlip

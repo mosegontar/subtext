@@ -23,7 +23,7 @@ func TestColorAtPixel(t *testing.T) {
 		newImage.SetNRGBA(1, 0, color.NRGBA{5, 3, 1, 0})
 		newImage.SetNRGBA(2, 0, color.NRGBA{2, 3, 4, 234})
 
-		u := UnderbyteImage{newImage}
+		u := UnderbyteImage{NRGBA: newImage}
 
 		testcases := []struct {
 			x     int
@@ -54,9 +54,9 @@ func TestMaxXCoordinate(t *testing.T) {
 			u UnderbyteImage
 			x int
 		}{
-			{u: UnderbyteImage{underbytetest.NewImage(5, 1)}, x: 5},
-			{u: UnderbyteImage{underbytetest.NewImage(1, 1)}, x: 1},
-			{u: UnderbyteImage{underbytetest.NewImage(200, 1)}, x: 200},
+			{u: UnderbyteImage{NRGBA: underbytetest.NewImage(5, 1)}, x: 5},
+			{u: UnderbyteImage{NRGBA: underbytetest.NewImage(1, 1)}, x: 1},
+			{u: UnderbyteImage{NRGBA: underbytetest.NewImage(200, 1)}, x: 200},
 		}
 
 		for _, testcase := range testcases {
@@ -76,9 +76,9 @@ func TestMaxYCoordinate(t *testing.T) {
 			u UnderbyteImage
 			y int
 		}{
-			{u: UnderbyteImage{underbytetest.NewImage(5, 1)}, y: 1},
-			{u: UnderbyteImage{underbytetest.NewImage(1, 3)}, y: 3},
-			{u: UnderbyteImage{underbytetest.NewImage(200, 321)}, y: 321},
+			{u: UnderbyteImage{NRGBA: underbytetest.NewImage(5, 1)}, y: 1},
+			{u: UnderbyteImage{NRGBA: underbytetest.NewImage(1, 3)}, y: 3},
+			{u: UnderbyteImage{NRGBA: underbytetest.NewImage(200, 321)}, y: 321},
 		}
 
 		for _, testcase := range testcases {
@@ -98,9 +98,9 @@ func TestPixelCount(t *testing.T) {
 			u     UnderbyteImage
 			count int
 		}{
-			{u: UnderbyteImage{underbytetest.NewImage(1, 1)}, count: 1},
-			{u: UnderbyteImage{underbytetest.NewImage(7, 5)}, count: 35},
-			{u: UnderbyteImage{underbytetest.NewImage(111, 2)}, count: 222},
+			{u: UnderbyteImage{NRGBA: underbytetest.NewImage(1, 1)}, count: 1},
+			{u: UnderbyteImage{NRGBA: underbytetest.NewImage(7, 5)}, count: 35},
+			{u: UnderbyteImage{NRGBA: underbytetest.NewImage(111, 2)}, count: 222},
 		}
 
 		for _, testcase := range testcases {
@@ -117,7 +117,7 @@ func TestPixelCount(t *testing.T) {
 
 func TestNthPixelCoordinates(t *testing.T) {
 	t.Run("it returns the coordinates of the n-th pixel", func(t *testing.T) {
-		u := UnderbyteImage{underbytetest.NewImage(5, 5)}
+		u := UnderbyteImage{NRGBA: underbytetest.NewImage(5, 5)}
 
 		testcases := []struct {
 			nthPixel int

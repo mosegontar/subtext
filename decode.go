@@ -9,49 +9,95 @@ import (
 
 type unpacker func(*bytes.Buffer, *PixelCursor)
 
-func (u *UnderbyteImage) Decode(w io.Writer) error {
-	cursor := NewPixelCursor(headerSize, 0)
+type UnderbyteReader interface {
+	unpack(*UnderbyteImage, *PixelCursor) []byte
+	maxPixels() int
+	messagePixels() int
+}
 
-	messageLength := u.getMessageLengthFromHeader(cursor)
+type DoublePackReader struct {
+	messageLength int
+	headerLength  int
+}
 
-	totalLength := headerSize + messageLength
+func (dpr *DoublePackReader) truncate() bool {
+	return dpr.messageLength%2 == 1
+}
 
-	var unpack unpacker
-	var truncate bool
+func (dpr *DoublePackReader) messagePixels() int {
+	return int(math.Round(float64(dpr.messageLength) / 2))
+}
+
+func (dpr *DoublePackReader) maxPixels() int {
+	return dpr.messagePixels() + dpr.headerLength
+}
+
+type SinglePackReader struct {
+	messageLength int
+	headerLength  int
+}
+
+func (spr *SinglePackReader) messagePixels() int {
+	return spr.messageLength
+}
+
+func (spr *SinglePackReader) maxPixels() int {
+	return spr.messagePixels() + spr.headerLength
+}
+
+func (u *UnderbyteImage) newMessageReader(headerLength, messageLength int) (UnderbyteReader, error) {
+	totalLength := headerLength + messageLength
+
 	if totalLength > 2*u.pixelCount() {
-		return errors.New("calculated encoded data size is greater than pixel count")
-	} else if totalLength > u.pixelCount() {
-		halfLength := math.Round(float64(messageLength) / 2)
-		cursor = NewPixelCursor(headerSize+int(halfLength), cursor.position())
-		unpack = u.doubleUnpack
-		truncate = messageLength%2 == 1
-	} else {
-		unpack = u.singleUnpack
-		cursor = NewPixelCursor(headerSize+messageLength, cursor.position())
-
+		return nil, errors.New("calculated encoded data size is greater than pixel count")
 	}
 
-	buff := new(bytes.Buffer)
-	unpack(buff, cursor)
-
-	messageBytes := buff.Bytes()
-	if truncate {
-		w.Write(messageBytes[:len(messageBytes)-1])
+	var reader UnderbyteReader
+	if totalLength > u.pixelCount() {
+		reader = &DoublePackReader{
+			messageLength: messageLength,
+			headerLength:  headerLength,
+		}
 	} else {
-		w.Write(messageBytes)
+		reader = &SinglePackReader{
+			messageLength: messageLength,
+			headerLength:  headerLength,
+		}
 	}
 
+	return reader, nil
+}
+
+func (u *UnderbyteImage) Decode(w io.Writer) error {
+	/* Get message size from header bytes */
+	cursor := NewPixelCursor(headerSize, 0)
+	headerReader, err := u.newMessageReader(headerSize, 0)
+	if err != nil {
+		panic(err)
+	}
+	headerBytes := headerReader.unpack(u, cursor)
+	messageLength := headerBytesToInt(headerBytes)
+
+	/* Extract message */
+	messageReader, err := u.newMessageReader(headerSize, messageLength)
+	if err != nil {
+		panic(err)
+	}
+
+	if u.options.randomize {
+		cursor = NewRandomizedPixelCursor(*u, cursor.position(), messageReader.messagePixels())
+	} else {
+		cursor = NewPixelCursor(messageReader.maxPixels(), cursor.position())
+	}
+
+	messageBytes := messageReader.unpack(u, cursor)
+
+	w.Write(messageBytes)
 	return nil
 }
 
-func (u *UnderbyteImage) getMessageLengthFromHeader(cursor *PixelCursor) int {
+func (spr SinglePackReader) unpack(u *UnderbyteImage, cursor *PixelCursor) []byte {
 	buff := new(bytes.Buffer)
-	u.singleUnpack(buff, cursor)
-
-	return headerBytesToInt(buff.Bytes())
-}
-
-func (u *UnderbyteImage) singleUnpack(buff *bytes.Buffer, cursor *PixelCursor) {
 	nthPixel, ok := cursor.next()
 
 	for ok {
@@ -70,9 +116,12 @@ func (u *UnderbyteImage) singleUnpack(buff *bytes.Buffer, cursor *PixelCursor) {
 		nthPixel, ok = cursor.next()
 	}
 
+	return buff.Bytes()
+
 }
 
-func (u *UnderbyteImage) doubleUnpack(buff *bytes.Buffer, cursor *PixelCursor) {
+func (dpr *DoublePackReader) unpack(u *UnderbyteImage, cursor *PixelCursor) []byte {
+	buff := new(bytes.Buffer)
 	nthPixel, ok := cursor.next()
 
 	for ok {
@@ -87,5 +136,12 @@ func (u *UnderbyteImage) doubleUnpack(buff *bytes.Buffer, cursor *PixelCursor) {
 		buff.WriteByte(secondByte)
 
 		nthPixel, ok = cursor.next()
+	}
+
+	if dpr.truncate() {
+		b := buff.Bytes()
+		return b[:len(b)-1]
+	} else {
+		return buff.Bytes()
 	}
 }

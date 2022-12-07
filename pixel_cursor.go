@@ -1,5 +1,9 @@
 package underbyte
 
+import (
+	"math/rand"
+)
+
 type Sequence interface {
 	next() (int, bool)
 	position() int
@@ -12,28 +16,16 @@ type SequentialSequence struct {
 }
 
 type RandomizedSequence struct {
-	index int
-	max   int
-	count int
+	min           int
+	max           int
+	maxIterations int
 
-	seed int64
 	seen map[int]bool
 }
 
 type PixelCursor struct {
 	Sequence
 }
-
-//func (pc *PixelCursor) next() (int, bool) {
-//	if pc.position > pc.max-1 {
-//		return -1, false
-//	}
-//
-//	current := pc.position
-//	pc.position++
-//	return current, true
-//}
-//
 
 func (seq *SequentialSequence) position() int {
 	return seq.index
@@ -51,21 +43,52 @@ func (seq *SequentialSequence) next() (int, bool) {
 	current := seq.index
 	seq.index++
 	return current, true
-
 }
 
-//func (rseq RandomizedSequence) next() (int, bool) {
-//	if len(rseq.seen) >= rseq.max {
-//		panic("help")
-//	}
-//	return
-//}
+func (rseq *RandomizedSequence) position() int {
+	return rseq.min
+}
 
-func NewPixelCursor(max int, index int) *PixelCursor {
+func (rseq *RandomizedSequence) limit() int {
+	return rseq.max
+}
+
+func (rseq *RandomizedSequence) next() (int, bool) {
+	if len(rseq.seen) >= rseq.maxIterations {
+		return -1, false
+	}
+
+	val := rand.Intn(rseq.max)
+	if val > rseq.min && !rseq.seen[val] {
+		rseq.seen[val] = true
+		return val, true
+	}
+
+	return rseq.next()
+}
+
+func NewPixelCursor(max, index int) *PixelCursor {
 	return &PixelCursor{
 		&SequentialSequence{
 			index: index,
 			max:   max,
+		},
+	}
+}
+
+func NewRandomizedPixelCursor(u UnderbyteImage, initPosition, maxIterations int) *PixelCursor {
+	seed := u.seedFromHeaderPixels()
+
+	min := initPosition
+	max := u.pixelCount()
+
+	rand.Seed(seed)
+	return &PixelCursor{
+		&RandomizedSequence{
+			max:           max,
+			min:           min,
+			maxIterations: maxIterations,
+			seen:          make(map[int]bool),
 		},
 	}
 }
