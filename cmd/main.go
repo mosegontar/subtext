@@ -26,7 +26,7 @@ func parseMessage(message string) []byte {
 func decodeMessage(filepath string, outFile *os.File) {
 	s := underbyte.SourceImagePath(filepath)
 	ub := underbyte.NewUnderbyteImage(s)
-	ub.DecodeMessage(outFile)
+	ub.Decode(outFile)
 }
 
 func encodeMessage(message string, inputPath string, outFile *os.File) {
@@ -35,7 +35,7 @@ func encodeMessage(message string, inputPath string, outFile *os.File) {
 
 	messageBytes := parseMessage(message)
 
-	err := underbyteImage.EncodeMessage(messageBytes)
+	err := underbyteImage.Encode(messageBytes)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

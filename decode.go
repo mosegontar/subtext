@@ -1,61 +1,109 @@
 package underbyte
 
 import (
-	"encoding/binary"
-	"fmt"
-	"image/color"
+	"bytes"
+	"errors"
 	"io"
 	"math"
 )
 
-// Extract embedded message bytes from supplied image file.
-func (u *UnderbyteImage) DecodeMessage(w io.Writer) {
-	header := u.decodeHeader()
+type unpacker func(*bytes.Buffer, *PixelCursor)
 
-	startingPixelIndex := header.messageOffset()
-	pixelsAvailable := u.pixelCount() - startingPixelIndex
+type UnderbyteReader interface {
+	unpack(*UnderbyteImage, *PixelCursor) []byte
+	maxPixels() int
+	messagePixels() int
+}
 
-	var messagePixelCount int
-	if header.size > pixelsAvailable {
-		u.strategy = DoublePackStrategy{}
-		messagePixelCount = int(math.Round(float64(header.size) / 2))
+type DoublePackReader struct {
+	messageLength int
+	headerLength  int
+}
+
+func (dpr *DoublePackReader) truncate() bool {
+	return dpr.messageLength%2 == 1
+}
+
+func (dpr *DoublePackReader) messagePixels() int {
+	return int(math.Round(float64(dpr.messageLength) / 2))
+}
+
+func (dpr *DoublePackReader) maxPixels() int {
+	return dpr.messagePixels() + dpr.headerLength
+}
+
+type SinglePackReader struct {
+	messageLength int
+	headerLength  int
+}
+
+func (spr *SinglePackReader) messagePixels() int {
+	return spr.messageLength
+}
+
+func (spr *SinglePackReader) maxPixels() int {
+	return spr.messagePixels() + spr.headerLength
+}
+
+func (u *UnderbyteImage) newMessageReader(headerLength, messageLength int) (UnderbyteReader, error) {
+	totalLength := headerLength + messageLength
+
+	if totalLength > 2*u.pixelCount() {
+		return nil, errors.New("calculated encoded data size is greater than pixel count")
+	}
+
+	var reader UnderbyteReader
+	if totalLength > u.pixelCount() {
+		reader = &DoublePackReader{
+			messageLength: messageLength,
+			headerLength:  headerLength,
+		}
 	} else {
-		u.strategy = SinglePackStrategy{}
-		messagePixelCount = header.size
+		reader = &SinglePackReader{
+			messageLength: messageLength,
+			headerLength:  headerLength,
+		}
 	}
 
-	endingPixel := startingPixelIndex + messagePixelCount
+	return reader, nil
+}
 
-	// Message is 0 bytes long, i.e,
-	// empty, so write an empty string.
-	if endingPixel == 0 {
-		fmt.Fprint(w, "")
-		return
+func (u *UnderbyteImage) Decode(w io.Writer) error {
+	/* Get message size from header bytes */
+	cursor := NewPixelCursor(headerSize, 0)
+	headerReader, err := u.newMessageReader(headerSize, 0)
+	if err != nil {
+		panic(err)
+	}
+	headerBytes := headerReader.unpack(u, cursor)
+	messageLength := headerBytesToInt(headerBytes)
+
+	/* Extract message */
+	messageReader, err := u.newMessageReader(headerSize, messageLength)
+	if err != nil {
+		panic(err)
 	}
 
-	decoded := u.parseBytes(startingPixelIndex, endingPixel+header.size%2)
-	message := decoded[:len(decoded)-(header.size%2)]
-	fmt.Fprintf(w, "%s", message)
+	if u.options.randomize {
+		cursor = NewRandomizedPixelCursor(*u, cursor.position(), messageReader.messagePixels())
+	} else {
+		cursor = NewPixelCursor(messageReader.maxPixels(), cursor.position())
+	}
+
+	messageBytes := messageReader.unpack(u, cursor)
+
+	w.Write(messageBytes)
+	return nil
 }
 
-func (u *UnderbyteImage) decodeHeader() MessageHeader {
-	mh := MessageHeader{strategy: DoublePackStrategy{}}
+func (spr SinglePackReader) unpack(u *UnderbyteImage, cursor *PixelCursor) []byte {
+	buff := new(bytes.Buffer)
+	nthPixel, ok := cursor.next()
 
-	headerBytes := mh.strategy.unpack(u, 0, 2)
-	headerValue := binary.BigEndian.Uint32(headerBytes)
+	for ok {
+		x, y := u.nthPixelCoordinates(nthPixel)
+		c := u.colorAtPixel(x, y)
 
-	mh.size = int(headerValue)
-	return mh
-}
-
-func (u *UnderbyteImage) parseBytes(first, last int) []byte {
-	return u.strategy.unpack(u, first, last)
-}
-
-func (sp SinglePackStrategy) unpack(u *UnderbyteImage, pixelStart, pixelEnd int) []byte {
-	byteCollection := []byte{}
-
-	revealBytes := func(c color.NRGBA) byte {
 		r := (c.R & 3 << 6)
 		g := (c.G & 3 << 4)
 		b := (c.B & 3 << 2)
@@ -63,41 +111,37 @@ func (sp SinglePackStrategy) unpack(u *UnderbyteImage, pixelStart, pixelEnd int)
 
 		rgba := r | g | b | a
 
-		return rgba
+		buff.WriteByte(rgba)
+
+		nthPixel, ok = cursor.next()
 	}
 
-	for i := pixelStart; i < pixelEnd; i++ {
-		x, y := u.nthPixelCoordinates(i)
-
-		c := u.colorAtPixel(x, y)
-		rb := revealBytes(c)
-
-		byteCollection = append(byteCollection, rb)
-	}
-
-	return byteCollection
+	return buff.Bytes()
 
 }
 
-func (dp DoublePackStrategy) unpack(u *UnderbyteImage, pixelStart, pixelEnd int) []byte {
-	byteCollection := []byte{}
+func (dpr *DoublePackReader) unpack(u *UnderbyteImage, cursor *PixelCursor) []byte {
+	buff := new(bytes.Buffer)
+	nthPixel, ok := cursor.next()
 
-	revealBytes := func(c color.NRGBA) (byte, byte) {
-		firstByte := (c.R&15)<<4 + (c.G & 15)
-		secondByte := (c.B&15)<<4 + (c.A & 15)
-		return firstByte, secondByte
-	}
-
-	for i := pixelStart; i < pixelEnd; i++ {
-		x, y := u.nthPixelCoordinates(i)
+	for ok {
+		x, y := u.nthPixelCoordinates(nthPixel)
 
 		c := u.colorAtPixel(x, y)
-		firstByte, secondByte := revealBytes(c)
 
-		byteCollection = append(byteCollection, firstByte)
-		byteCollection = append(byteCollection, secondByte)
+		firstByte := (c.R&15)<<4 + (c.G & 15)
+		secondByte := (c.B&15)<<4 + (c.A & 15)
 
+		buff.WriteByte(firstByte)
+		buff.WriteByte(secondByte)
+
+		nthPixel, ok = cursor.next()
 	}
 
-	return byteCollection
+	if dpr.truncate() {
+		b := buff.Bytes()
+		return b[:len(b)-1]
+	} else {
+		return buff.Bytes()
+	}
 }
