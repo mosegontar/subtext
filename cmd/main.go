@@ -25,13 +25,13 @@ func parseMessage(message string) []byte {
 
 func decodeMessage(filepath string, outFile *os.File) {
 	s := underbyte.SourceImagePath(filepath)
-	ub := underbyte.NewUnderbyteImage(s)
+	ub := underbyte.NewUnderbyteImage(s, nil)
 	ub.Decode(outFile)
 }
 
 func encodeMessage(message string, inputPath string, outFile *os.File) {
 	s := underbyte.SourceImagePath(inputPath)
-	underbyteImage := underbyte.NewUnderbyteImage(s)
+	underbyteImage := underbyte.NewUnderbyteImage(s, nil)
 
 	messageBytes := parseMessage(message)
 

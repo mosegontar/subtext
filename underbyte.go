@@ -19,7 +19,7 @@ type UnderbyteImage struct {
 	options UnderbyteOptions
 }
 
-func NewUnderbyteImage(source ImageLoader) *UnderbyteImage {
+func NewUnderbyteImage(source ImageLoader, options *UnderbyteOptions) *UnderbyteImage {
 	original := source.loadImageData()
 	originalBounds := original.Bounds()
 
@@ -28,7 +28,11 @@ func NewUnderbyteImage(source ImageLoader) *UnderbyteImage {
 
 	draw.Draw(newImage, newImage.Bounds(), original, originalBounds.Min, draw.Src)
 
-	return &UnderbyteImage{NRGBA: newImage, options: UnderbyteOptions{randomize: true}}
+	if options == nil {
+		options = &UnderbyteOptions{randomize: true}
+	}
+
+	return &UnderbyteImage{NRGBA: newImage, options: *options}
 }
 
 func (u *UnderbyteImage) WriteImage(w io.Writer) {
