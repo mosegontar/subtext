@@ -81,17 +81,24 @@ func (u *UnderbyteImage) seedFromHeaderPixels() int64 {
 
 func (u *UnderbyteImage) randomizationSeed() int64 {
 	if u.options.Seed != "" {
-		var myInt int64
-		h := sha256.New()
-		h.Write([]byte(u.options.Seed))
-		hsum := h.Sum(nil)
-		buf := bytes.NewReader(hsum)
-		err := binary.Read(buf, binary.BigEndian, &myInt)
-		if err != nil {
-			panic(err)
-		}
-		return myInt
+		return toInt64(u.options.Seed)
 	} else {
 		return u.seedFromHeaderPixels()
 	}
+}
+
+func toInt64(s string) int64 {
+	var n int64
+
+	h := sha256.New()
+	h.Write([]byte(s))
+	hsum := h.Sum(nil)
+
+	buf := bytes.NewReader(hsum)
+	err := binary.Read(buf, binary.BigEndian, &n)
+	if err != nil {
+		panic(err)
+	}
+
+	return n
 }
