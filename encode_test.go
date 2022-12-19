@@ -73,7 +73,7 @@ func TestEncode(t *testing.T) {
 		u := UnderbyteImage{
 			NRGBA: underbytetest.NewImage(10, 2),
 			options: UnderbyteOptions{
-				randomize: true,
+				Randomize: true,
 			},
 		}
 
@@ -107,7 +107,7 @@ func TestEncode(t *testing.T) {
 		u := UnderbyteImage{
 			NRGBA: underbytetest.NewImage(4, 2),
 			options: UnderbyteOptions{
-				randomize: true,
+				Randomize: true,
 			},
 		}
 

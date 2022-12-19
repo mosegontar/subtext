@@ -82,7 +82,7 @@ func (u *UnderbyteImage) Decode(w io.Writer) error {
 		panic(err)
 	}
 
-	if u.options.randomize {
+	if u.options.Randomize {
 		cursor = NewRandomizedPixelCursor(*u, cursor.position(), messageReader.messagePixels())
 	} else {
 		cursor = NewPixelCursor(messageReader.maxPixels(), cursor.position())

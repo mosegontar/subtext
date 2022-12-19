@@ -1,6 +1,8 @@
 package underbyte
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"image"
 	"image/color"
@@ -12,7 +14,8 @@ import (
 )
 
 type UnderbyteOptions struct {
-	randomize bool
+	Randomize bool
+	Seed      string
 }
 type UnderbyteImage struct {
 	*image.NRGBA
@@ -29,7 +32,7 @@ func NewUnderbyteImage(source ImageLoader, options *UnderbyteOptions) *Underbyte
 	draw.Draw(newImage, newImage.Bounds(), original, originalBounds.Min, draw.Src)
 
 	if options == nil {
-		options = &UnderbyteOptions{randomize: true}
+		options = &UnderbyteOptions{Randomize: true}
 	}
 
 	return &UnderbyteImage{NRGBA: newImage, options: *options}
@@ -74,4 +77,21 @@ func (u *UnderbyteImage) seedFromHeaderPixels() int64 {
 	n := binary.BigEndian.Uint64(values)
 
 	return int64(n)
+}
+
+func (u *UnderbyteImage) randomizationSeed() int64 {
+	if u.options.Seed != "" {
+		var myInt int64
+		h := sha256.New()
+		h.Write([]byte(u.options.Seed))
+		hsum := h.Sum(nil)
+		buf := bytes.NewReader(hsum)
+		err := binary.Read(buf, binary.BigEndian, &myInt)
+		if err != nil {
+			panic(err)
+		}
+		return myInt
+	} else {
+		return u.seedFromHeaderPixels()
+	}
 }
