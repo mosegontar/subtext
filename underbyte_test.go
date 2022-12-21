@@ -152,7 +152,7 @@ func TestNthPixelCoordinates(t *testing.T) {
 func TestNewUnderbyteImage(t *testing.T) {
 	t.Run("it returns an UnderbyteImage with the correct dimensions", func(t *testing.T) {
 		sourceImageMock := SourceImageMock{image: underbytetest.NewImage(15, 30)}
-		u := NewUnderbyteImage(sourceImageMock)
+		u := NewUnderbyteImage(sourceImageMock, nil)
 
 		actualX := u.maxXCoordinate()
 		actualY := u.maxYCoordinate()
@@ -179,7 +179,7 @@ func TestNewUnderbyteImage(t *testing.T) {
 		img.SetNRGBA(1, 1, color1_1)
 
 		sourceImageMock := SourceImageMock{image: img}
-		u := NewUnderbyteImage(sourceImageMock)
+		u := NewUnderbyteImage(sourceImageMock, nil)
 
 		first := u.NRGBAAt(0, 0)
 		second := u.NRGBAAt(1, 0)

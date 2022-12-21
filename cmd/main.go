@@ -23,15 +23,26 @@ func parseMessage(message string) []byte {
 	return byts
 }
 
-func decodeMessage(filepath string, outFile *os.File) {
+func decodeMessage(filepath string, outFile *os.File, seed string) {
+	opts := underbyte.UnderbyteOptions{
+		Randomize: true,
+		Seed:      seed,
+	}
+
 	s := underbyte.SourceImagePath(filepath)
-	ub := underbyte.NewUnderbyteImage(s)
+	ub := underbyte.NewUnderbyteImage(s, &opts)
+
 	ub.Decode(outFile)
 }
 
-func encodeMessage(message string, inputPath string, outFile *os.File) {
+func encodeMessage(message string, inputPath string, outFile *os.File, seed string) {
+	opts := underbyte.UnderbyteOptions{
+		Randomize: true,
+		Seed:      seed,
+	}
+
 	s := underbyte.SourceImagePath(inputPath)
-	underbyteImage := underbyte.NewUnderbyteImage(s)
+	underbyteImage := underbyte.NewUnderbyteImage(s, &opts)
 
 	messageBytes := parseMessage(message)
 
@@ -63,6 +74,7 @@ func main() {
 	outpath := flag.String("out", "", "Output filepath for encoded image (STDOUT used if not specified)")
 	decode := flag.Bool("decode", false, "Decode message from image instead of encoding (default false)")
 	message := flag.String("message", "", "message to encode (STDIN used if not specified)")
+	seed := flag.String("seed", "", "string to use as seed")
 
 	var defaultUsage func()
 	defaultUsage = flag.Usage
@@ -90,9 +102,9 @@ Examples:
 	defer f.Close()
 
 	if *decode {
-		decodeMessage(*filepath, f)
+		decodeMessage(*filepath, f, *seed)
 	} else {
-		encodeMessage(*message, *filepath, f)
+		encodeMessage(*message, *filepath, f, *seed)
 	}
 
 }

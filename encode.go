@@ -26,7 +26,7 @@ func (u *UnderbyteImage) Encode(message []byte) error {
 	cursor := NewPixelCursor(totalLength, 0)
 	u.singlePack(header, cursor)
 
-	if u.options.randomize {
+	if u.options.Randomize {
 		cursor = NewRandomizedPixelCursor(*u, cursor.position(), len(message))
 	}
 

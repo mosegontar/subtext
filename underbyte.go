@@ -1,6 +1,8 @@
 package underbyte
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"image"
 	"image/color"
@@ -12,14 +14,15 @@ import (
 )
 
 type UnderbyteOptions struct {
-	randomize bool
+	Randomize bool
+	Seed      string
 }
 type UnderbyteImage struct {
 	*image.NRGBA
 	options UnderbyteOptions
 }
 
-func NewUnderbyteImage(source ImageLoader) *UnderbyteImage {
+func NewUnderbyteImage(source ImageLoader, options *UnderbyteOptions) *UnderbyteImage {
 	original := source.loadImageData()
 	originalBounds := original.Bounds()
 
@@ -28,7 +31,11 @@ func NewUnderbyteImage(source ImageLoader) *UnderbyteImage {
 
 	draw.Draw(newImage, newImage.Bounds(), original, originalBounds.Min, draw.Src)
 
-	return &UnderbyteImage{NRGBA: newImage, options: UnderbyteOptions{randomize: true}}
+	if options == nil {
+		options = &UnderbyteOptions{Randomize: true}
+	}
+
+	return &UnderbyteImage{NRGBA: newImage, options: *options}
 }
 
 func (u *UnderbyteImage) WriteImage(w io.Writer) {
@@ -70,4 +77,28 @@ func (u *UnderbyteImage) seedFromHeaderPixels() int64 {
 	n := binary.BigEndian.Uint64(values)
 
 	return int64(n)
+}
+
+func (u *UnderbyteImage) randomizationSeed() int64 {
+	if u.options.Seed != "" {
+		return toInt64(u.options.Seed)
+	} else {
+		return u.seedFromHeaderPixels()
+	}
+}
+
+func toInt64(s string) int64 {
+	var n int64
+
+	h := sha256.New()
+	h.Write([]byte(s))
+	hsum := h.Sum(nil)
+
+	buf := bytes.NewReader(hsum)
+	err := binary.Read(buf, binary.BigEndian, &n)
+	if err != nil {
+		panic(err)
+	}
+
+	return n
 }

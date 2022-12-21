@@ -77,16 +77,13 @@ func NewPixelCursor(max, index int) *PixelCursor {
 }
 
 func NewRandomizedPixelCursor(u UnderbyteImage, initPosition, maxIterations int) *PixelCursor {
-	seed := u.seedFromHeaderPixels()
-
-	min := initPosition
-	max := u.pixelCount()
-
+	seed := u.randomizationSeed()
 	rand.Seed(seed)
+
 	return &PixelCursor{
 		&RandomizedSequence{
-			max:           max,
-			min:           min,
+			max:           u.pixelCount(),
+			min:           initPosition,
 			maxIterations: maxIterations,
 			seen:          make(map[int]bool),
 		},
