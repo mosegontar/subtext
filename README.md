@@ -4,22 +4,23 @@ Fun with steganography, images, and Go. Encode arbitrary bytes in image pixels.
 
 Note that encoding only writes output images as PNGs (though JPEGs can be used as an input image).
 
-This is a **toy** project I've worked on to learn Go while on parental leave, during late night baby-is-sleeping-but-might-wake-up shifts. For an example of a non-trivial implementation that actually handles JPEG encoding see https://github.com/owencm/secretbook (which also has an accompanying paper and talk).
-
 ## Example:
 This image of Leo Tolstoy encodes an epub of the entirety of _War and Peace_.
-![Leo Tolstoy](./assets/tolstoy_war_and_peace.png?raw=true "Leo Tolstoy")
+![Leo Tolstoy](./assets/tolstoy_war_peace.png?raw=true "Leo Tolstoy")
 It was created by running
 ```
-cat war_and_peace.epub| ./underbyte -file tolstoy.jpg -out tolstoy_war_and_peace.png
+cat war_and_peace.epub| ./underbyte -file tolstoy.jpg -out tolstoy_war_peace.png
 ```
 
 You can decode and extract the epub file by running
 ```
-./underbyte -decode -file tolstoy_war_and_peace -out decoded_war_and_peace.epub
+./underbyte -decode -file tolstoy_war_peace.png -out decoded_war_peace.epub
 ```
 
-Now you can settle in for a long read :)
+### Secret keys
+
+You can supply a secret key when coding and decoding. This secret is used to seed randomized pixel cursor
+that determines which pixels contain which bytes of the encoded message.
 
 
 ## Installation
@@ -39,6 +40,8 @@ Usage of ./underbyte:
     	message to encode (STDIN used if not specified)
   -out string
     	Output filepath for encoded image (STDOUT used if not specified)
+  -secret string
+        secret key value used to encode and decode message
 
 Examples:
   Encoding:
