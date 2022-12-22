@@ -10,6 +10,19 @@ import (
 	"github.com/mosegontar/underbyte"
 )
 
+type decodeOptions struct {
+	filepath string
+	outFile  *os.File
+	secret   string
+}
+
+type encodeOptions struct {
+	message  string
+	filepath string
+	outFile  *os.File
+	secret   string
+}
+
 func parseMessage(message string) []byte {
 	if message != "" {
 		return []byte(message)
@@ -23,35 +36,35 @@ func parseMessage(message string) []byte {
 	return byts
 }
 
-func decodeMessage(filepath string, outFile *os.File, seed string) {
+func decodeMessage(options decodeOptions) {
 	opts := underbyte.UnderbyteOptions{
 		Randomize: true,
-		Seed:      seed,
+		Secret:    options.secret,
 	}
 
-	s := underbyte.SourceImagePath(filepath)
+	s := underbyte.SourceImagePath(options.filepath)
 	ub := underbyte.NewUnderbyteImage(s, &opts)
 
-	ub.Decode(outFile)
+	ub.Decode(options.outFile)
 }
 
-func encodeMessage(message string, inputPath string, outFile *os.File, seed string) {
+func encodeMessage(options encodeOptions) {
 	opts := underbyte.UnderbyteOptions{
 		Randomize: true,
-		Seed:      seed,
+		Secret:    options.secret,
 	}
 
-	s := underbyte.SourceImagePath(inputPath)
+	s := underbyte.SourceImagePath(options.filepath)
 	underbyteImage := underbyte.NewUnderbyteImage(s, &opts)
 
-	messageBytes := parseMessage(message)
+	messageBytes := parseMessage(options.message)
 
 	err := underbyteImage.Encode(messageBytes)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	underbyteImage.WriteImage(outFile)
+	underbyteImage.WriteImage(options.outFile)
 }
 
 func outputFile(outputPath string) (*os.File, error) {
@@ -74,7 +87,7 @@ func main() {
 	outpath := flag.String("out", "", "Output filepath for encoded image (STDOUT used if not specified)")
 	decode := flag.Bool("decode", false, "Decode message from image instead of encoding (default false)")
 	message := flag.String("message", "", "message to encode (STDIN used if not specified)")
-	seed := flag.String("seed", "", "string to use as seed")
+	secret := flag.String("secret", "", "secret key value used to encode and decode message")
 
 	var defaultUsage func()
 	defaultUsage = flag.Usage
@@ -102,9 +115,20 @@ Examples:
 	defer f.Close()
 
 	if *decode {
-		decodeMessage(*filepath, f, *seed)
+		opts := decodeOptions{
+			filepath: *filepath,
+			outFile:  f,
+			secret:   *secret,
+		}
+		decodeMessage(opts)
 	} else {
-		encodeMessage(*message, *filepath, f, *seed)
+		opts := encodeOptions{
+			message:  *message,
+			filepath: *filepath,
+			outFile:  f,
+			secret:   *secret,
+		}
+		encodeMessage(opts)
 	}
 
 }

@@ -15,8 +15,9 @@ import (
 
 type UnderbyteOptions struct {
 	Randomize bool
-	Seed      string
+	Secret    string
 }
+
 type UnderbyteImage struct {
 	*image.NRGBA
 	options UnderbyteOptions
@@ -80,15 +81,15 @@ func (u *UnderbyteImage) seedFromHeaderPixels() int64 {
 }
 
 func (u *UnderbyteImage) randomizationSeed() int64 {
-	if u.options.Seed != "" {
-		return toInt64(u.options.Seed)
+	if u.options.Secret != "" {
+		return toInt64(u.options.Secret)
 	} else {
 		return u.seedFromHeaderPixels()
 	}
 }
 
 func toInt64(s string) int64 {
-	var n int64
+	var n uint64
 
 	h := sha256.New()
 	h.Write([]byte(s))
@@ -100,5 +101,5 @@ func toInt64(s string) int64 {
 		panic(err)
 	}
 
-	return n
+	return int64(n)
 }
